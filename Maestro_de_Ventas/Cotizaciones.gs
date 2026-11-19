@@ -179,10 +179,10 @@ function rimHtmlPdf_(d) {
   var hoy = Utilities.formatDate(new Date(), 'America/Caracas', 'yyyy-MM-dd');
   var filas=d.items.map(function(it){
     var plazo = rimFechaEntrega_(it.tiempo_entrega || (d.plazosEntregaGuardados ? 'Por confirmar' : 'Sin plazo registrado'), hoy);
-    var detalle=[it.marca,plazo];if(mixto)detalle.push(it.precioTipo&&it.precioTipo.indexOf('div_')===0?'Divisa':'BCV');
-    return '<tr><td class="producto"><strong>'+e(it.item)+'</strong><div class="detalle-producto">'+detalle.filter(Boolean).map(e).join(' · ')+'</div></td><td class="num">'+usd(it.precio)+'</td><td class="num">'+it.cant+'</td><td class="num subtotal">'+usd(it.subtotal)+'</td></tr>';
+    var detalle=[it.marca ? 'Marca ' + it.marca : '', mixto ? (it.precioTipo&&it.precioTipo.indexOf('div_')===0?'Divisa':'BCV') : ''];
+    return '<tr><td class="producto"><strong>'+e(it.item)+'</strong><div class="detalle-producto">'+detalle.filter(Boolean).map(e).join(' · ')+'</div><div class="detalle-producto"><b>Disponibilidad:</b> '+e(plazo)+'</div></td><td class="num">'+usd(it.precio)+'</td><td class="num">'+it.cant+'</td><td class="num subtotal">'+usd(it.subtotal)+'</td></tr>';
   }).join('');
-  var nota='Disponibilidad sujeta a confirmación al cerrar el pedido.';
+  var nota='Las fechas indicadas son estimadas. Confirmamos la disponibilidad y la entrega al formalizar el pedido.';
   if(divisa)nota+=' Pago en divisas o transferencia en USD.';
   else nota+=' Tasa BCV: '+bs(d.tasaBCV)+' / USD.'+(mixto?' Aplica solo a los precios BCV; la parte divisa se paga en USD.':'');
   var totalDerecha=mixto?pago.divisa.total:pago.total,ivaDerecha=mixto?pago.divisa.iva:pago.iva;
@@ -213,24 +213,32 @@ function comprobarLogoCotizacion() {
 function rimFechaEntrega_(plazo, hoy) {
   var original = String(plazo == null ? '' : plazo).replace(/\s+/g, ' ').trim() || 'Por confirmar';
   var texto = original.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  var rango = texto.match(/^(?:(?:en|a|de)\s+)?(\d+)(?:\s*(?:a|[-–—])\s*(\d+))?(?:\s+dias?(?:\s+(habil(?:es)?|laborables?|calendario|continuos?|corridos?))?)?\.?$/);
+  var importacion = /\bimportacion\b/.test(texto);
+  var local = /\b(local|nacional)\b/.test(texto);
+  var duracion = texto.replace(/\b(?:(?:bajo|por|de|en)\s+)?importacion\b|\b(?:despacho|entrega)(?:\s+(?:local|nacional))?\b|\b(local|nacional)\b/g, '')
+    .replace(/[():]/g, ' ').replace(/\s+/g, ' ').trim();
+  var rango = duracion.match(/^(?:(?:en|a|de)\s+)?(\d+)(?:\s+dias?)?(?:\s*(?:a|[-–—])\s*(\d+)\s*(?:dias?)?)?(?:\s+(habil(?:es)?|laborables?|calendario|continuos?|corridos?))?\.?$/);
   var desde, hasta, habiles = false;
   if (rango) {
     desde = Number(rango[1]);
     hasta = rango[2] == null ? desde : Number(rango[2]);
     habiles = /^(habil|laborable)/.test(rango[3] || '');
     if (hasta < desde || hasta > 3650) return original;
-  } else if (/^(hoy|inmediat[oa]|entrega inmediata|mismo dia)\.?$/.test(texto)) {
+  } else if (/^(hoy|inmediat[oa]|mismo dia)\.?$/.test(duracion)) {
     desde = hasta = 0;
-  } else if (/^manana\.?$/.test(texto)) {
+  } else if (/^manana\.?$/.test(duracion)) {
     desde = hasta = 1;
   } else {
     return original;
   }
+  // Los plazos de cinco días o más se cotizan como importación, salvo indicación local.
+  importacion = importacion || (!local && desde >= 5);
+  if (!importacion && hasta === 0) return 'Entrega inmediata';
+  var tolerancia = importacion && desde >= 5 ? (hasta >= 30 ? 10 : 2) : 0;
   var base = new Date(hoy + 'T00:00:00Z');
   if (!Number.isFinite(base.getTime())) return original;
-  var dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  var meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  var meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
   function fecha(offset) {
     var d = new Date(base.getTime());
     if (!habiles) d.setUTCDate(d.getUTCDate() + offset);
@@ -238,10 +246,20 @@ function rimFechaEntrega_(plazo, hoy) {
       d.setUTCDate(d.getUTCDate() + 1);
       if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) offset--;
     }
-    var resultado = dias[d.getUTCDay()] + ' ' + d.getUTCDate();
-    if (d.getUTCMonth() !== base.getUTCMonth() || d.getUTCFullYear() !== base.getUTCFullYear()) resultado += ' de ' + meses[d.getUTCMonth()];
-    if (d.getUTCFullYear() !== base.getUTCFullYear()) resultado += ' de ' + d.getUTCFullYear();
-    return resultado;
+    return d;
   }
-  return 'Entrega a ' + fecha(desde) + (desde === hasta ? '' : ' al ' + fecha(hasta));
+
+  var inicio = fecha(desde), fin = fecha(hasta + tolerancia);
+  var mismoAno = inicio.getUTCFullYear() === fin.getUTCFullYear();
+  var mismoMes = mismoAno && inicio.getUTCMonth() === fin.getUTCMonth();
+  var fechaFin = fin.getUTCDate() + ' ' + meses[fin.getUTCMonth()] + ' ' + fin.getUTCFullYear();
+  var ventana = fechaFin;
+  if (desde !== hasta + tolerancia) {
+    var fechaInicio = String(inicio.getUTCDate());
+    if (!mismoMes) fechaInicio += ' ' + meses[inicio.getUTCMonth()];
+    if (!mismoAno) fechaInicio += ' ' + inicio.getUTCFullYear();
+    ventana = fechaInicio + ' – ' + fechaFin;
+  }
+  if (importacion) return 'Bajo importación (' + ventana + ')';
+  return (desde === hasta ? 'Entrega estimada el ' : 'Entrega estimada entre ') + ventana;
 }

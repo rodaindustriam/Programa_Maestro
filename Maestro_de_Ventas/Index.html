@@ -1715,11 +1715,15 @@
       var hoy = fecha.year + '-' + fecha.month + '-' + fecha.day;
       cotizacion.forEach(function(it,i){
         var precio=obtenerPrecioUnitario(it),sub=redondearMoneda(precio*it.cant),tipo=rimPrecioTipoCotizacion(it).indexOf('div_')===0?'Divisa':'BCV';
-        texto+=(i+1)+'. *'+it.item+'* ('+it.marca+')\n';
+        var codigo = String(it.item || '').trim(), marca = String(it.marca || '').trim();
+        if (marca && codigo.toUpperCase().endsWith(' ' + marca.toUpperCase())) {
+          codigo = codigo.slice(0, -marca.length).replace(/[\s—–]+$/, '');
+        }
+        texto+=(i+1)+'. *'+codigo+'*'+(marca?' — Marca '+marca:'')+'\n';
         texto+='   • Precio unitario: $'+precio.toFixed(2)+' + IVA'+(mixto?' · '+tipo:'')+'\n';
-        texto+='   • Cant: '+it.cant+' · Subtotal: *$'+sub.toFixed(2)+'*\n';
+        texto+='   • Cantidad: '+it.cant+' · Subtotal: *$'+sub.toFixed(2)+'*\n';
         var plazo = rimFechaEntrega_(rimTiempoEntregaCotizacion(it), hoy);
-        texto+='   • '+(plazo.indexOf('Entrega a ')===0 ? plazo : 'Entrega: '+plazo)+'\n\n';
+        texto+='   • Disponibilidad: '+plazo+'\n\n';
       });
       texto+='----------------------------------------\n';
       if(mixto){
@@ -1734,7 +1738,7 @@
         texto+='*TOTAL CON IVA: $'+p.total.toFixed(2)+' USD* ('+rimImporteBs(p.bcv.totalBs)+')\n\n';
         texto+='_Pagos en Bs. a tasa oficial BCV ('+tasaBCV.toFixed(2)+')._\n';
       }
-      texto+='_Disponibilidad sujeta a confirmación final._';
+      texto+='_Las fechas indicadas son estimadas. Confirmamos la disponibilidad y la entrega al formalizar tu pedido._';
       copyTextDirect(texto,'¡Cotización copiada para WhatsApp!');
     }
 
