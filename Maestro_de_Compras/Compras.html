@@ -1,0 +1,2463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Panel de Compras & Reabastecimiento · Rodaindustria Maracay</title>
+  <link rel="icon" type="image/x-icon" href="https://rodaindustriamaracay.com/favicon.ico">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { 
+      font-family: 'Inter', sans-serif; 
+      background: radial-gradient(circle at 50% 0%, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+      color: #1e293b;
+      min-height: 100vh;
+    }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    
+    .compras-header {
+      background: linear-gradient(135deg, rgba(22, 54, 40, 0.98) 0%, rgba(36, 82, 60, 0.96) 50%, rgba(15, 36, 27, 0.98) 100%);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    
+    .kpi-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .kpi-card:hover {
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+    }
+    .filter-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    /* KANBAN BOARD */
+    .kanban-board {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(290px, 1fr));
+      gap: 0.85rem;
+      overflow-x: auto;
+      padding-bottom: 1.5rem;
+      align-items: start;
+    }
+    .kanban-col {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 1rem;
+      min-height: calc(100vh - 210px);
+      display: flex;
+      flex-direction: column;
+    }
+    .kanban-col-header {
+      padding: 0.85rem 1rem;
+      border-bottom: 2px solid transparent;
+      background: #ffffff;
+      border-top-left-radius: 1rem;
+      border-top-right-radius: 1rem;
+    }
+    .kanban-dropzone {
+      flex: 1;
+      padding: 0.65rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      min-height: 200px;
+      transition: background-color 0.2s ease;
+    }
+    .kanban-dropzone.dragover {
+      background-color: rgba(16, 185, 129, 0.08);
+      border: 2px dashed #10b981;
+      border-radius: 0.75rem;
+    }
+    .kanban-card {
+      cursor: grab;
+      user-select: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .kanban-card:active {
+      cursor: grabbing;
+    }
+    .kanban-card.is-dragging {
+      opacity: 0.45;
+      transform: scale(0.97);
+    }
+
+    /* LOGIN MODAL */
+    .app-blur-active {
+      filter: blur(14px) brightness(0.97);
+      pointer-events: none;
+      user-select: none;
+    }
+    .app-blur-inactive {
+      filter: blur(0px) brightness(1);
+      pointer-events: auto;
+      user-select: auto;
+    }
+    #overlay-login {
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(12px);
+      transition: opacity 0.4s ease;
+    }
+    .login-card {
+      background: rgba(255, 255, 255, 0.98);
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+    }
+    .shake-error {
+      animation: loginShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    @keyframes loginShake {
+      10%, 90% { transform: translate3d(-2px, 0, 0); }
+      20%, 80% { transform: translate3d(4px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+      40%, 60% { transform: translate3d(6px, 0, 0); }
+    }
+    [hidden] { display:none !important; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+  </style>
+</head>
+<body class="antialiased pb-20">
+
+  <!-- OVERLAY DE LOGIN TRANSPARENTE -->
+  <div id="overlay-login" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div id="box-login" class="login-card w-full max-w-sm rounded-3xl p-6 sm:p-7 text-center relative overflow-hidden transition-all duration-300">
+      
+      <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#163628] via-[#24523c] to-[#0f241b]"></div>
+
+      <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-800 flex items-center justify-center shadow-sm border border-emerald-200">
+        <i class="fa-solid fa-boxes-packing text-2xl text-[#163628]"></i>
+      </div>
+
+      <div class="mb-5">
+        <div class="flex items-center justify-center gap-1.5 mb-1">
+          <span class="font-black text-sm tracking-widest text-[#163628] uppercase">RIM</span>
+          <span class="text-xs font-black text-slate-500">COMPRAS</span>
+        </div>
+        <h2 class="text-base font-black text-slate-900 tracking-tight">Acceso a Compras</h2>
+        <p class="text-[11px] text-slate-500 font-medium mt-0.5">Gestión de Reabastecimiento & Solicitudes</p>
+      </div>
+
+      <div id="login-error-msg" class="hidden mb-3 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-bold text-left flex items-center gap-2">
+        <i class="fa-solid fa-circle-exclamation text-rose-500 text-sm shrink-0"></i>
+        <span id="compras-login-mensaje" aria-live="polite"></span>
+      </div>
+
+      <form onsubmit="intentarAcceso(event)" class="space-y-3 text-left">
+        <div>
+          <label for="login-email" class="block text-[10px] font-black uppercase text-slate-600 mb-1">Correo autorizado:</label>
+          <div class="relative">
+            <i class="fa-solid fa-envelope absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+            <input type="email" id="login-email" required autofocus autocomplete="email" placeholder="Ingresa tu correo de trabajo" class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-emerald-700 transition-all">
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-500">Verificaremos que la cuenta de Google sea tuya. No escribas tu contraseña en esta página.</p>
+        <button type="submit" id="btn-login-submit" class="w-full mt-2 py-2.5 bg-gradient-to-r from-[#163628] via-[#24523c] to-[#0f241b] hover:from-[#1b4332] hover:to-[#132e22] text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all">
+          <i class="fa-brands fa-google text-emerald-300"></i><span id="compras-login-boton-texto">Verificar con Google e ingresar</span>
+        </button>
+        <button type="button" id="compras-cancelar-acceso" hidden onclick="comprasCancelarAcceso()" class="w-full text-xs font-bold py-2 text-slate-600">Cancelar acceso</button>
+      </form>
+
+      <div class="mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-400 font-medium">
+        <span>🔒 Sesión confidencial · Rodaindustria Maracay C.A.</span>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="compras-modal-actividad" class="hidden fixed inset-0 z-50 bg-slate-950/70 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Actividad del ticket">
+    <section class="bg-white rounded-2xl w-full max-w-xl p-4 max-h-[85vh] overflow-y-auto"><div class="flex justify-between items-center mb-3"><h2 class="font-bold text-sm">Actividad del ticket</h2><button onclick="document.getElementById('compras-modal-actividad').classList.add('hidden')" class="px-3 py-2 text-xs font-bold">Cerrar</button></div><div id="compras-lista-actividad"></div></section>
+  </div>
+  <!-- CONTENEDOR PRINCIPAL DE LA APLICACIÓN -->
+  <div id="app-wrapper" class="app-blur-active" inert>
+
+    <!-- CABECERA PRINCIPAL COMPRAS -->
+    <header class="compras-header text-white px-4 py-3.5 shadow-xl sticky top-0 z-30 border-b border-white/10">
+      <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+        
+        <!-- Marca & Identidad -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-white/20 to-white/5 border border-white/20 flex items-center justify-center text-emerald-300 shadow-inner">
+            <i class="fa-solid fa-boxes-packing text-base"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-black text-sm tracking-widest text-emerald-300 uppercase">RIM</span>
+              <span class="text-xs font-black bg-gradient-to-r from-emerald-100 via-slate-100 to-white bg-clip-text text-transparent">Gestión de Compras</span>
+            </div>
+            <p class="text-[10px] text-emerald-200/90 font-medium">Atención de Requerimientos y Reabastecimiento de Sedes</p>
+          </div>
+        </div>
+
+        <!-- Selector de Vistas / Pestañas & Navegación -->
+        <div class="flex items-center gap-2">
+          <!-- Pestañas de Vista -->
+          <div class="flex items-center bg-black/30 p-1 rounded-xl border border-white/10 text-xs font-bold">
+            <button onclick="cambiarVistaCompras('dashboard')" id="nav-btn-dashboard" class="px-3 py-1.5 rounded-lg transition-all bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm flex items-center gap-1.5">
+              <i class="fa-solid fa-chart-pie text-emerald-200"></i>
+              <span>Dashboard</span>
+            </button>
+            <button onclick="cambiarVistaCompras('pedidos')" id="nav-btn-pedidos" class="px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5">
+              <i class="fa-solid fa-boxes-packing"></i>
+              <span>Pedidos</span>
+              <span id="nav-badge-pedidos" class="w-4 h-4 rounded-full bg-white/20 text-white text-[10px] font-black flex items-center justify-center">0</span>
+            </button>
+            <button onclick="cambiarVistaCompras('historico')" id="nav-btn-historico" class="px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5">
+              <i class="fa-solid fa-box-archive"></i>
+              <span>Histórico</span>
+              <span id="nav-badge-historico" class="w-4 h-4 rounded-full bg-emerald-500/30 text-emerald-300 text-[10px] font-black flex items-center justify-center">0</span>
+            </button>
+            <button onclick="cambiarVistaCompras('proveedores')" id="nav-btn-proveedores" class="px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5">
+              <i class="fa-solid fa-address-book"></i>
+              <span>Proveedores</span>
+              <span id="nav-badge-proveedores" class="w-4 h-4 rounded-full bg-emerald-500/30 text-emerald-300 text-[10px] font-black flex items-center justify-center">0</span>
+            </button>
+          </div>
+
+          <!-- CAMPANA DE NOTIFICACIONES COMPRAS -->
+          <div class="relative" id="contenedor-campana-compras">
+            <button type="button" onclick="togglePanelNotificacionesCompras(event)" id="btn-campana-compras" title="Notificaciones de nuevos pedidos y notas de ventas" class="relative p-2 bg-white/10 hover:bg-white/20 rounded-xl text-slate-200 hover:text-white text-xs border border-white/15 transition-all cursor-pointer">
+              <i class="fa-solid fa-bell text-sm"></i>
+              <span id="badge-notif-compras" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-400 text-slate-900 text-[9.5px] font-black flex items-center justify-center border-2 border-[#163628] shadow-sm animate-bounce">0</span>
+            </button>
+
+            <!-- MENÚ DESPLEGABLE DE NOTIFICACIONES COMPRAS -->
+            <div id="dropdown-notif-compras" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 text-slate-800 z-[100] overflow-hidden" onclick="event.stopPropagation()">
+              <div class="p-3 bg-[#163628] text-white flex items-center justify-between border-b border-emerald-900">
+                <div class="flex items-center gap-2">
+                  <i class="fa-solid fa-bell text-amber-400 text-xs"></i>
+                  <span class="text-xs font-black uppercase tracking-wider">Avisos de Procura</span>
+                </div>
+                <button type="button" onclick="marcarNotificacionesComprasLeidas(event)" class="text-[10px] text-emerald-200 hover:text-white font-bold cursor-pointer">Marcar leídas</button>
+              </div>
+              <div id="lista-notif-compras-dropdown" class="max-h-72 overflow-y-auto divide-y divide-slate-100 p-1">
+                <div class="p-6 text-center text-slate-400 text-xs">Sin avisos nuevos</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Indicador de Sincronización en Tiempo Real -->
+          <div id="live-indicator-badge" title="Sincronización en tiempo real activa" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-xs font-bold text-emerald-300">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-[10px] uppercase tracking-wider">En Vivo</span>
+          </div>
+
+          <div class="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/10 border border-white/15 text-xs text-slate-200">
+            <i class="fa-solid fa-user-shield text-emerald-300 text-[11px]"></i>
+            <span id="lbl-usuario-conectado" class="font-bold text-white">Admin</span>
+          </div>
+
+          <!-- Botón Recargar -->
+          <button onclick="cargarSolicitudes(false)" title="Recargar solicitudes de Google Sheets" class="p-2 bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white rounded-xl text-xs border border-white/15 transition-all">
+            <i id="btn-refresh-icon" class="fa-solid fa-rotate"></i>
+          </button>
+
+          <!-- Botón Cerrar Sesión -->
+          <button onclick="cerrarSesion()" title="Cerrar sesión segura" class="p-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 hover:text-white rounded-xl text-xs border border-rose-400/30 transition-all flex items-center gap-1.5 px-2.5">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span class="hidden md:inline font-bold">Salir</span>
+          </button>
+        </div>
+
+      </div>
+    </header>
+    <div class="max-w-7xl mx-auto px-4 mt-3 space-y-2">
+      <div class="flex flex-wrap items-center gap-2 text-xs"><span id="compras-estado-carga" class="text-slate-500" role="status">Inicia sesión para cargar pedidos.</span><button type="button" onclick="cargarSolicitudes(false)" class="font-bold underline text-slate-600">Reintentar / Actualizar</button></div>
+      <span id="compras-estado-comentarios" class="text-[10px] text-slate-500" role="status"></span><div id="compras-operaciones-pendientes" class="space-y-1"></div>
+    </div>
+
+
+    <!-- ======================================================== -->
+    <!-- VISTA 1: DASHBOARD EJECUTIVO PRINCIPAL -->
+    <!-- ======================================================== -->
+    <div id="vista-dashboard" class="space-y-4">
+      
+      <!-- PANEL DE MÉTRICAS (LOS 5 KPIs CLAVE) -->
+      <section class="max-w-7xl mx-auto px-4 mt-4">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+          
+          <div class="kpi-card p-3.5 rounded-2xl flex items-center justify-between">
+            <div>
+              <span class="text-[9.5px] font-bold text-slate-500 uppercase tracking-wide">Pendientes</span>
+              <h3 id="kpi-pendientes" class="text-2xl font-black text-amber-600 font-mono mt-0.5">0</h3>
+              <p class="text-[9.5px] text-slate-400 mt-0.5 font-medium">Por atender</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg border border-amber-200/80 shadow-2xs">
+              <i class="fa-solid fa-clock"></i>
+            </div>
+          </div>
+
+          <div class="kpi-card p-3.5 rounded-2xl flex items-center justify-between">
+            <div>
+              <span class="text-[9.5px] font-bold text-slate-500 uppercase tracking-wide">Urgencia Alta</span>
+              <h3 id="kpi-urgentes" class="text-2xl font-black text-rose-600 font-mono mt-0.5">0</h3>
+              <p class="text-[9.5px] text-rose-500 font-bold mt-0.5">Mostrador</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg border border-rose-200/80 shadow-2xs">
+              <i class="fa-solid fa-fire"></i>
+            </div>
+          </div>
+
+          <div class="kpi-card p-3.5 rounded-2xl flex items-center justify-between">
+            <div>
+              <span class="text-[9.5px] font-bold text-slate-500 uppercase tracking-wide">Emitiendo O.C.</span>
+              <h3 id="kpi-cotizando" class="text-2xl font-black text-sky-600 font-mono mt-0.5">0</h3>
+              <p class="text-[9.5px] text-slate-400 mt-0.5 font-medium">En gestión</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg border border-sky-200/80 shadow-2xs">
+              <i class="fa-solid fa-file-invoice-dollar"></i>
+            </div>
+          </div>
+
+          <div class="kpi-card p-3.5 rounded-2xl flex items-center justify-between">
+            <div>
+              <span class="text-[9.5px] font-bold text-slate-500 uppercase tracking-wide">En Proceso</span>
+              <h3 id="kpi-piezas" class="text-2xl font-black text-slate-800 font-mono mt-0.5">0</h3>
+              <p class="text-[9.5px] text-slate-400 mt-0.5 font-medium">Piezas activas</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-lg border border-slate-300 shadow-2xs">
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+          </div>
+
+          <!-- 5TO INDICADOR: DESPACHADO / CONFORME -->
+          <div class="kpi-card p-3.5 rounded-2xl flex items-center justify-between col-span-2 md:col-span-1 border-emerald-300 bg-gradient-to-br from-white to-emerald-50/40">
+            <div>
+              <span class="text-[9.5px] font-bold text-emerald-800 uppercase tracking-wide">Despachados</span>
+              <h3 id="kpi-despachados" class="text-2xl font-black text-emerald-600 font-mono mt-0.5">0</h3>
+              <p class="text-[9.5px] text-emerald-700 font-bold mt-0.5"><span id="lbl-despachados-pzas">0</span> piezas cerradas</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg border border-emerald-300 shadow-2xs">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- GRAFICOS Y ANALÍTICAS -->
+      <section class="max-w-7xl mx-auto px-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          <!-- Demanda por Sucursal -->
+          <div class="kpi-card p-4 rounded-2xl flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-location-dot"></i>
+                  </div>
+                  <h4 class="text-xs font-black uppercase text-slate-800 tracking-wide">Demanda por Sucursal</h4>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono font-bold" id="dash-total-tickets-lbl">0 tickets</span>
+              </div>
+              
+              <div class="space-y-2.5 text-xs">
+                <div>
+                  <div class="flex justify-between font-bold text-slate-700 mb-1">
+                    <span>El Tigre</span>
+                    <span id="dash-suc-tigre-cnt" class="font-mono text-emerald-700 font-black">0 pzas</span>
+                  </div>
+                  <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div id="dash-suc-tigre-bar" class="h-full bg-emerald-600 rounded-full transition-all duration-500" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between font-bold text-slate-700 mb-1">
+                    <span>Maracay</span>
+                    <span id="dash-suc-maracay-cnt" class="font-mono text-[#0066c0] font-black">0 pzas</span>
+                  </div>
+                  <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div id="dash-suc-maracay-bar" class="h-full bg-[#0066c0] rounded-full transition-all duration-500" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between font-bold text-slate-700 mb-1">
+                    <span>Barquisimeto</span>
+                    <span id="dash-suc-bqto-cnt" class="font-mono text-amber-600 font-black">0 pzas</span>
+                  </div>
+                  <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div id="dash-suc-bqto-bar" class="h-full bg-amber-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-400 flex items-center justify-between font-medium">
+              <span>Sedes solicitantes</span>
+              <span class="text-emerald-700 font-bold">Datos en vivo</span>
+            </div>
+          </div>
+
+          <!-- Estatus Financiero / Pagos -->
+          <div class="kpi-card p-4 rounded-2xl flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-wallet"></i>
+                  </div>
+                  <h4 class="text-xs font-black uppercase text-slate-800 tracking-wide">Estatus de Pago Ventas</h4>
+                </div>
+                <span class="text-[10px] text-slate-400 font-bold">3 Modalidades</span>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 text-xs">
+                <div class="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
+                  <span class="text-[9px] uppercase font-bold text-emerald-800 block">Pagado</span>
+                  <span id="dash-pago-pagado" class="text-lg font-black text-emerald-700 font-mono mt-0.5 block">0</span>
+                  <span class="text-[8.5px] text-emerald-600">Garantizado</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-sky-50/70 border border-sky-200">
+                  <span class="text-[9px] uppercase font-bold text-sky-800 block">Anticipo</span>
+                  <span id="dash-pago-anticipo" class="text-lg font-black text-sky-700 font-mono mt-0.5 block">0</span>
+                  <span class="text-[8.5px] text-sky-600">Abono inicial</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-purple-50/70 border border-purple-200">
+                  <span class="text-[9px] uppercase font-bold text-purple-800 block">Crédito</span>
+                  <span id="dash-pago-credito" class="text-lg font-black text-purple-700 font-mono mt-0.5 block">0</span>
+                  <span class="text-[8.5px] text-purple-600">Línea autorizada</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-400 flex items-center justify-between font-medium">
+              <span>Riesgo financiero de compras</span>
+              <span class="text-emerald-700 font-bold"><i class="fa-solid fa-shield-halved mr-1"></i>Validado</span>
+            </div>
+          </div>
+
+          <!-- Top Proveedores Solicitados (PRV) -->
+          <div class="kpi-card p-4 rounded-2xl flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-truck-ramp-box"></i>
+                  </div>
+                  <h4 class="text-xs font-black uppercase text-slate-800 tracking-wide">Proveedores Más Requeridos</h4>
+                </div>
+                <span class="text-[10px] text-slate-400 font-bold">PRV</span>
+              </div>
+
+              <div id="dash-top-prv-lista" class="space-y-2 text-xs"></div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span class="text-[10px] text-slate-400 font-medium">Gestión de distribuidores</span>
+              <button onclick="cambiarVistaCompras('pedidos')" class="text-xs font-black text-emerald-800 hover:text-emerald-900 flex items-center gap-1 transition-colors">
+                <span>Ver Pedidos</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- BOTÓN DESTACADO A PEDIDOS -->
+      <section class="max-w-7xl mx-auto px-4 mt-2">
+        <div class="kpi-card p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-[#163628] to-[#0f241b] text-white flex flex-wrap items-center justify-between gap-3 shadow-lg border-emerald-800/30">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-white/10 text-emerald-300 flex items-center justify-center text-2xl border border-white/15 shadow-inner">
+              <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-black tracking-tight text-white">Bandeja Activa de Pedidos & Reabastecimiento</h3>
+              <p class="text-xs text-emerald-200/90 font-medium mt-0.5">Consulta tickets completos, mueve etapas en el Kanban y genera órdenes para WhatsApp</p>
+            </div>
+          </div>
+          <button onclick="cambiarVistaCompras('pedidos')" class="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs rounded-xl shadow-md flex items-center gap-2 transition-all">
+            <i class="fa-solid fa-arrow-right-to-bracket text-sm"></i>
+            <span>Ir a Gestión de Pedidos</span>
+          </button>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VISTA 2: GESTIÓN DE PEDIDOS (KANBAN DE 5 ETAPAS) -->
+    <!-- ======================================================== -->
+    <div id="vista-pedidos" class="hidden">
+
+      <!-- FILTROS -->
+      <section class="max-w-7xl mx-auto px-4 mt-4">
+        <div class="filter-card p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+          
+          <div class="relative flex-1 min-w-[240px]">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+            <input type="text" id="filtro-busqueda" oninput="aplicarFiltros()" placeholder="Buscar por ticket, vendedora, cliente, repuesto, prv (ej: TCK-00001, NEIGER, CARLOS, 2309)..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-emerald-700 transition-all">
+          </div>
+
+          <div class="flex items-center gap-1.5 text-xs">
+            <span class="text-[10px] uppercase font-bold text-slate-500">Urgencia:</span>
+            <select id="filtro-urgencia" onchange="aplicarFiltros()" class="bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 font-bold text-slate-700 text-xs focus:bg-white focus:outline-none focus:border-emerald-700">
+              <option value="TODAS">Todas</option>
+              <option value="Urgente">Alta (Mostrador)</option>
+              <option value="Media">Media (Venta en espera)</option>
+              <option value="Normal">Normal (Reposición)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-1.5 text-xs">
+            <span class="text-[10px] uppercase font-bold text-slate-500">Sede Origen:</span>
+            <select id="filtro-sucursal" onchange="aplicarFiltros()" class="bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 font-bold text-slate-700 text-xs focus:bg-white focus:outline-none focus:border-emerald-700">
+              <option value="TODAS">Todas</option>
+              <option value="EL TIGRE">El Tigre</option>
+              <option value="MARACAY">Maracay</option>
+              <option value="BARQUISIMETO">Barquisimeto</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-1.5 text-xs">
+            <span class="text-[10px] uppercase font-bold text-slate-500">Pago:</span>
+            <select id="filtro-pago" onchange="aplicarFiltros()" class="bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 font-bold text-slate-700 text-xs focus:bg-white focus:outline-none focus:border-emerald-700">
+              <option value="TODOS">Todos</option>
+              <option value="PAGADO">PAGADO</option>
+              <option value="ANTICIPO / ABONO">ANTICIPO / ABONO</option>
+              <option value="CRÉDITO">CRÉDITO</option>
+            </select>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TABLERO KANBAN CON LAS 5 ETAPAS -->
+      <main class="max-w-7xl mx-auto px-4 mt-4">
+        <div class="kanban-board">
+          
+          <!-- COLUMNA 1: PENDIENTE -->
+          <div class="kanban-col border-amber-200/90 shadow-2xs">
+            <div class="kanban-col-header border-b-2 border-amber-500 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-black uppercase text-amber-800 tracking-wide flex items-center gap-1.5">
+                  <i class="fa-solid fa-hourglass-start text-amber-500"></i>
+                  <span>Pendiente</span>
+                </h4>
+                <p class="text-[10px] text-slate-500 font-medium mt-0.5"><span id="cnt-col-PENDIENTE" class="font-bold text-slate-800">0</span> pedidos · <span id="pzas-col-PENDIENTE" class="font-mono font-bold text-amber-700">0</span> pzas</p>
+              </div>
+              <span class="w-6 h-6 rounded-full bg-amber-100 text-amber-800 text-xs font-black flex items-center justify-center">1</span>
+            </div>
+            <div id="dropzone-PENDIENTE" ondragover="permitirSoltar(event)" ondragleave="quitarDragover(event)" ondrop="soltarEnEtapa(event, 'PENDIENTE')" class="kanban-dropzone"></div>
+          </div>
+
+          <!-- COLUMNA 2: EMITIENDO ORDEN DE COMPRA -->
+          <div class="kanban-col border-sky-200/90 shadow-2xs">
+            <div class="kanban-col-header border-b-2 border-sky-500 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-black uppercase text-sky-800 tracking-wide flex items-center gap-1.5">
+                  <i class="fa-solid fa-file-signature text-sky-500"></i>
+                  <span>Emitiendo O.C.</span>
+                </h4>
+                <p class="text-[10px] text-slate-500 font-medium mt-0.5"><span id="cnt-col-ORDEN_COMPRA" class="font-bold text-slate-800">0</span> pedidos · <span id="pzas-col-ORDEN_COMPRA" class="font-mono font-bold text-sky-700">0</span> pzas</p>
+              </div>
+              <span class="w-6 h-6 rounded-full bg-sky-100 text-sky-800 text-xs font-black flex items-center justify-center">2</span>
+            </div>
+            <div id="dropzone-ORDEN_COMPRA" ondragover="permitirSoltar(event)" ondragleave="quitarDragover(event)" ondrop="soltarEnEtapa(event, 'ORDEN_COMPRA')" class="kanban-dropzone"></div>
+          </div>
+
+          <!-- COLUMNA 3: EN TRÁNSITO -->
+          <div class="kanban-col border-indigo-200/90 shadow-2xs">
+            <div class="kanban-col-header border-b-2 border-indigo-500 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-black uppercase text-indigo-800 tracking-wide flex items-center gap-1.5">
+                  <i class="fa-solid fa-truck-fast text-indigo-500"></i>
+                  <span>En Tránsito</span>
+                </h4>
+                <p class="text-[10px] text-slate-500 font-medium mt-0.5"><span id="cnt-col-EN_TRANSITO" class="font-bold text-slate-800">0</span> pedidos · <span id="pzas-col-EN_TRANSITO" class="font-mono font-bold text-indigo-700">0</span> pzas</p>
+              </div>
+              <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-800 text-xs font-black flex items-center justify-center">3</span>
+            </div>
+            <div id="dropzone-EN_TRANSITO" ondragover="permitirSoltar(event)" ondragleave="quitarDragover(event)" ondrop="soltarEnEtapa(event, 'EN_TRANSITO')" class="kanban-dropzone"></div>
+          </div>
+
+          <!-- COLUMNA 4: RECIBIDO EN ALMACÉN -->
+          <div class="kanban-col border-emerald-200/90 shadow-2xs">
+            <div class="kanban-col-header border-b-2 border-emerald-500 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-black uppercase text-emerald-800 tracking-wide flex items-center gap-1.5">
+                  <i class="fa-solid fa-warehouse text-emerald-500"></i>
+                  <span>Recibido Almacén</span>
+                </h4>
+                <p class="text-[10px] text-slate-500 font-medium mt-0.5"><span id="cnt-col-RECIBIDO" class="font-bold text-slate-800">0</span> pedidos · <span id="pzas-col-RECIBIDO" class="font-mono font-bold text-emerald-700">0</span> pzas</p>
+              </div>
+              <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center">4</span>
+            </div>
+            <div id="dropzone-RECIBIDO" ondragover="permitirSoltar(event)" ondragleave="quitarDragover(event)" ondrop="soltarEnEtapa(event, 'RECIBIDO')" class="kanban-dropzone"></div>
+          </div>
+
+          <!-- COLUMNA 5: RECHAZADO / DEVOLUCIÓN -->
+          <div class="kanban-col border-rose-200/90 shadow-2xs">
+            <div class="kanban-col-header border-b-2 border-rose-500 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-black uppercase text-rose-800 tracking-wide flex items-center gap-1.5">
+                  <i class="fa-solid fa-ban text-rose-500"></i>
+                  <span>Rechazado / Devolución</span>
+                </h4>
+                <p class="text-[10px] text-slate-500 font-medium mt-0.5"><span id="cnt-col-RECHAZADO_DEVOLUCION" class="font-bold text-slate-800">0</span> pedidos · <span id="pzas-col-RECHAZADO_DEVOLUCION" class="font-mono font-bold text-rose-700">0</span> pzas</p>
+              </div>
+              <span class="w-6 h-6 rounded-full bg-rose-100 text-rose-800 text-xs font-black flex items-center justify-center">5</span>
+            </div>
+            <div id="dropzone-RECHAZADO_DEVOLUCION" ondragover="permitirSoltar(event)" ondragleave="quitarDragover(event)" ondrop="soltarEnEtapa(event, 'RECHAZADO_DEVOLUCION')" class="kanban-dropzone"></div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VISTA 3: HISTÓRICO DE PEDIDOS DESPACHADOS -->
+    <!-- ======================================================== -->
+    <div id="vista-historico" class="hidden max-w-7xl mx-auto px-4 mt-4 space-y-4">
+      <div class="filter-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 class="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <i class="fa-solid fa-box-archive text-emerald-600"></i>
+            <span>Histórico de Pedidos Despachados</span>
+          </h3>
+          <p class="text-xs text-slate-500">Registro histórico para control gerencial, auditoría y análisis de demanda</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="text" id="filtro-historico" oninput="comprasBuscarHistorico()" placeholder="Buscar en histórico..." class="px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-emerald-700">
+        </div>
+      </div>
+
+      <div class="kpi-card rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-black uppercase text-[10px]">
+              <tr>
+                <th class="p-3">Ticket</th>
+                <th class="p-3">Solicitud / Despacho</th>
+                <th class="p-3">Sede Origen / Responsable</th>
+                <th class="p-3">Entrega / Cliente</th>
+                <th class="p-3">Pago</th>
+                <th class="p-3">Repuestos / Cantidad</th>
+                <th class="p-3 text-right">Estatus</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-historico" class="divide-y divide-slate-100 font-medium"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-3 items-center text-xs text-slate-600"><span id="compras-estado-historico" role="status">El histórico se carga al abrir esta sección.</span><button id="compras-hist-anterior" onclick="comprasCargarHistorico(comprasHistoricoPagina-1)" class="font-bold underline">Anterior</button><button id="compras-hist-siguiente" onclick="comprasCargarHistorico(comprasHistoricoPagina+1)" class="font-bold underline">Siguiente</button><button onclick="comprasCargarHistorico(comprasHistoricoPagina)" class="font-bold underline">Actualizar</button></div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VISTA 4: DIRECTORIO DE PROVEEDORES & RUBROS -->
+    <!-- ======================================================== -->
+    <div id="vista-proveedores" class="hidden max-w-7xl mx-auto px-4 mt-4 space-y-4">
+      <div class="filter-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 class="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <i class="fa-solid fa-address-book text-emerald-600"></i>
+            <span>Directorio de Proveedores & Tiempos de Entrega</span>
+          </h3>
+          <p class="text-xs text-slate-500">Mapeo oficial de códigos PRV a Nombres Reales, orígenes, tiempos por sede y rubros especializados</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button onclick="abrirModalFormProveedor(null)" class="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all">
+            <i class="fa-solid fa-user-plus text-xs"></i>
+            <span>Nuevo Proveedor</span>
+          </button>
+          <div class="relative min-w-[200px]">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+            <input type="text" id="filtro-proveedor-busqueda" oninput="renderizarDirectorioProveedores()" placeholder="Buscar proveedor, PRV, origen..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-emerald-700">
+          </div>
+          <button onclick="cargarProveedores(false)" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs border border-slate-300" title="Actualizar proveedores">
+            <i class="fa-solid fa-rotate"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- BARRA DE FILTRO RÁPIDO POR ETIQUETAS DE RUBROS -->
+      <div class="p-3 bg-white rounded-2xl border border-slate-200 shadow-xs">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fa-solid fa-tags text-emerald-600 text-xs"></i>
+          <span class="text-[11px] font-black uppercase text-slate-700">Filtrar por Rubro:</span>
+          <span id="lbl-rubro-activo" class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 hidden">Todos</span>
+        </div>
+        <div id="contenedor-pills-rubros" class="flex flex-wrap gap-1.5 text-xs">
+          <!-- Pills dinámicas de rubros -->
+        </div>
+      </div>
+
+      <!-- GRILLA DE CONTACTOS DE PROVEEDORES -->
+      <div id="grilla-contactos-proveedores" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        <!-- Render dinámico -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL: CREAR / EDITAR PROVEEDOR COMPLETO -->
+  <div id="modal-form-proveedor" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden text-slate-800 max-h-[92vh] flex flex-col">
+      <div class="p-4 bg-[#163628] text-white flex items-center justify-between border-b border-emerald-900">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center border border-emerald-400/30">
+            <i id="icono-modal-form-prov" class="fa-solid fa-user-pen text-sm"></i>
+          </div>
+          <div>
+            <h3 id="titulo-modal-form-prov" class="text-xs font-black uppercase tracking-wider text-white">Editar Proveedor</h3>
+            <p class="text-[10px] text-emerald-200">Actualiza datos de contacto, origen y tiempos de respuesta</p>
+          </div>
+        </div>
+        <button onclick="cerrarModalFormProveedor()" class="text-slate-300 hover:text-white text-sm">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form onsubmit="guardarFormularioProveedor(event)" class="flex-1 overflow-y-auto p-4 space-y-3 text-xs">
+        <input type="hidden" id="form-prov-codigo-original">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Nombre Real / Razón Social: <span class="text-rose-500 font-black">*</span></label>
+            <input type="text" id="form-prov-nombre" required placeholder="Ej: BRYCO, FSA, TRANSMOFUERZA" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-emerald-700">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Código PRV: <span class="text-rose-500 font-black">*</span></label>
+            <input type="text" id="form-prov-codigo" required placeholder="Ej: PRV-302" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold text-slate-800 uppercase focus:bg-white focus:outline-none focus:border-emerald-700">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Ciudad / Origen / País:</label>
+            <input type="text" id="form-prov-origen" placeholder="Ej: Maracay, Caracas, China, etc." class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-emerald-700">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Contacto / Teléfono / Asesor:</label>
+            <input type="text" id="form-prov-contacto" placeholder="Ej: 0414-1234567 / Lic. Mendoza" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-emerald-700">
+          </div>
+        </div>
+
+        <!-- Tiempos de Entrega -->
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+          <span class="text-[10px] font-black uppercase text-slate-600 flex items-center gap-1.5">
+            <i class="fa-solid fa-truck-clock text-emerald-700"></i>
+            <span>Tiempos de Entrega Estimados por Sede:</span>
+          </span>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[9px] font-bold uppercase text-slate-500 mb-0.5">Maracay:</label>
+              <input type="text" id="form-prov-t-mcy" placeholder="Ej: Inmediato, 1 día" class="w-full p-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-700">
+            </div>
+            <div>
+              <label class="block text-[9px] font-bold uppercase text-slate-500 mb-0.5">El Tigre:</label>
+              <input type="text" id="form-prov-t-tigre" placeholder="Ej: 1 día, 1-2 días" class="w-full p-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-700">
+            </div>
+            <div>
+              <label class="block text-[9px] font-bold uppercase text-slate-500 mb-0.5">Barquisimeto:</label>
+              <input type="text" id="form-prov-t-bqto" placeholder="Ej: 1 día o 2" class="w-full p-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-700">
+            </div>
+          </div>
+        </div>
+
+        <!-- Rubros / Etiquetas -->
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Rubros que maneja (Separados por coma):</label>
+          <input type="text" id="form-prov-rubros" placeholder="Ej: Rodamientos, Chumaceras, Retenes, Cadenas" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-emerald-700">
+          <p class="text-[9.5px] text-slate-400 mt-1">Puedes ingresar varios rubros separados por comas para filtrarlos fácilmente.</p>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="cerrarModalFormProveedor()" class="px-3.5 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancelar</button>
+          <button type="submit" id="btn-submit-form-prov" class="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Guardar Proveedor</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: GESTIÓN DE RUBROS / ETIQUETAS POR PROVEEDOR -->
+  <div id="modal-rubros-prov" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="p-3.5 bg-[#163628] text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-tags text-emerald-300 text-sm"></i>
+          <div>
+            <h3 class="text-xs font-black uppercase tracking-wider text-white">Etiquetas de Rubros</h3>
+            <p id="lbl-modal-rubros-nombre" class="text-[10px] text-emerald-200 font-bold">Proveedor</p>
+          </div>
+        </div>
+        <button onclick="cerrarModalRubros()" class="text-slate-300 hover:text-white text-sm">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-4 space-y-3">
+        <div>
+          <label class="block text-[10.5px] font-bold uppercase text-slate-500 mb-1">Rubros asignados (sin límite):</label>
+          <div id="modal-rubros-lista-tags" class="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl min-h-[46px]">
+            <!-- Tags editables -->
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input type="text" id="modal-nuevo-rubro-input" onkeydown="if(event.key==='Enter'){event.preventDefault(); agregarTagRubroModal();}" placeholder="Escribe un rubro (ej: Rodamientos, Chumaceras) y pulsa Enter" class="flex-1 p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-emerald-700">
+          <button type="button" onclick="agregarTagRubroModal()" class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-xl shadow-xs">
+            + Añadir
+          </button>
+        </div>
+
+        <div class="text-[10.5px] text-slate-400">
+          <span>💡 Sugerencias rápidas:</span>
+          <div class="flex flex-wrap gap-1 mt-1">
+            <button type="button" onclick="anadirTagSugerido('Rodamientos')" class="text-[9.5px] bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 border border-slate-200 px-2 py-0.5 rounded-lg">+ Rodamientos</button>
+            <button type="button" onclick="anadirTagSugerido('Chumaceras')" class="text-[9.5px] bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 border border-slate-200 px-2 py-0.5 rounded-lg">+ Chumaceras</button>
+            <button type="button" onclick="anadirTagSugerido('Retenes')" class="text-[9.5px] bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 border border-slate-200 px-2 py-0.5 rounded-lg">+ Retenes</button>
+            <button type="button" onclick="anadirTagSugerido('Crucetas')" class="text-[9.5px] bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 border border-slate-200 px-2 py-0.5 rounded-lg">+ Crucetas</button>
+            <button type="button" onclick="anadirTagSugerido('Fajas / Correas')" class="text-[9.5px] bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 border border-slate-200 px-2 py-0.5 rounded-lg">+ Correas</button>
+            <button type="button" onclick="anadirTagSugerido('Cadenas')" class="text-[9.5px] bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 border border-slate-200 px-2 py-0.5 rounded-lg">+ Cadenas</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+        <button onclick="cerrarModalRubros()" class="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-800">Cancelar</button>
+        <button id="btn-guardar-rubros" onclick="guardarRubrosModalEnSheets()" class="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-xl shadow-md flex items-center gap-1.5">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span>Guardar en Hoja</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: HILO DE COMENTARIOS / NOTAS (CHAT ENTRE DEPARTAMENTOS) -->
+  <div id="modal-comentarios-compras" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
+      <div class="p-3.5 bg-[#163628] text-white flex items-center justify-between border-b border-emerald-900">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-comments text-emerald-300 text-sm"></i>
+          <div>
+            <h3 class="text-xs font-black uppercase tracking-wider text-white">Notas del Pedido <span id="lbl-modal-compras-ticket" class="font-mono text-emerald-300">TCK-00000</span></h3>
+            <p class="text-[10px] text-emerald-200">Comunicación directa con Ventas</p>
+          </div>
+        </div>
+        <button onclick="cerrarModalComentariosCompras()" class="text-slate-300 hover:text-white text-sm">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="hilo-comentarios-compras-lista" class="flex-1 overflow-y-auto p-4 space-y-2.5 bg-slate-50 text-xs"></div>
+
+      <div class="p-3 bg-white border-t border-slate-200 space-y-2">
+        <div class="flex items-center gap-2">
+          <input type="text" id="input-compras-cmt" onkeydown="if(event.key==='Enter') enviarComentarioDesdeCompras()" placeholder="Escribe instrucciones o actualización para Ventas..." class="flex-1 p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-emerald-700">
+          <button onclick="enviarComentarioDesdeCompras()" id="btn-enviar-cmt-compras" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all">
+            <i class="fa-solid fa-paper-plane text-xs"></i>
+            <span>Enviar</span>
+          </button>
+        </div>
+        <div class="text-[10px] text-slate-400 flex items-center justify-between">
+          <span>Identificado como: <strong class="text-slate-700">Compras (Procura)</strong></span>
+          <span>Presiona Enter para enviar</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RESUMEN WHATSAPP PARA PROVEEDOR -->
+  <div id="modal-proveedor" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="p-3.5 bg-[#163628] text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fa-brands fa-whatsapp text-emerald-300 text-base"></i>
+          <h3 class="text-xs font-black uppercase tracking-wider">Formato WhatsApp para Proveedor</h3>
+        </div>
+        <button onclick="cerrarModalProveedor()" class="text-slate-300 hover:text-white text-sm">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="p-4 space-y-2">
+        <label class="block text-[10px] font-bold uppercase text-slate-500">Texto formateado listo para enviar:</label>
+        <textarea id="texto-proveedor" rows="8" readonly class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono text-xs text-slate-800 focus:outline-none select-all"></textarea>
+      </div>
+      <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+        <button onclick="cerrarModalProveedor()" class="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-800">Cerrar</button>
+        <button onclick="copiarTextoProveedor()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md flex items-center gap-1.5">
+          <i class="fa-regular fa-copy"></i>
+          <span>Copiar Mensaje</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-md text-white px-4 py-2 rounded-xl text-xs font-bold shadow-2xl border border-white/10 opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center gap-2">
+    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toast-text">Mensaje</span>
+  </div>
+
+  <script>
+    // ==========================================
+    // SEGURIDAD & AUTENTICACIÓN (LOGIN)
+    // ==========================================
+    // SOLO COMPRAS: acceso Google y permisos derivados del servidor.
+    let sesionAutenticada = false;
+    let comprasToken = '', comprasUsuario = null, comprasEpoch = 0;
+    let comprasLoginActivo = false, comprasLoginIntento = 0, comprasLoginTimer = null, comprasVentana = null;
+    let comprasOverlayTimer = null;
+
+    function comprasError(e) { return String(e && e.message || e || 'No se pudo completar la operación.'); }
+    function comprasHtml(v) { return String(v == null ? '' : v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+    function comprasArgumento(v) { return comprasHtml(JSON.stringify(String(v || '')).slice(1,-1).replace(/'/g,'\\u0027')); }
+    function comprasStorage(valor) {
+      if(arguments.length===0){
+        try { var guardado=localStorage.getItem('rim_compras_token');if(guardado)return guardado; } catch(e) {}
+        try { return sessionStorage.getItem('rim_compras_token'); } catch(e) { return null; }
+      }
+      if(valor){
+        try { localStorage.setItem('rim_compras_token',valor); } catch(e) {
+          try { sessionStorage.setItem('rim_compras_token',valor); } catch(ignorado) {}
+          comprasMensajeLogin('El navegador no permite recordar la sesión al cerrar la página.');
+          return null;
+        }
+        try { sessionStorage.removeItem('rim_compras_token'); } catch(e) {}
+      }else{
+        try { localStorage.removeItem('rim_compras_token'); } catch(e) {}
+        try { sessionStorage.removeItem('rim_compras_token'); } catch(e) {}
+      }
+      return true;
+    }
+    function comprasMensajeLogin(mensaje) {
+      var caja=document.getElementById('login-error-msg');
+      caja.classList.toggle('hidden',!mensaje);document.getElementById('compras-login-mensaje').textContent=mensaje||'';
+    }
+    function comprasRpcPublico(nombre,args) {
+      return new Promise(function(resolve,reject){
+        if(typeof google==='undefined'||!google.script||!google.script.run){reject(new Error('Abre esta página desde la implementación de Compras en Apps Script.'));return;}
+        var runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(function(e){reject(new Error(comprasError(e)));});
+        runner[nombre].apply(runner,args||[]);
+      });
+    }
+    // Cada petición privada incorpora el token. Las respuestas de una sesión
+    // anterior se descartan para no volver a mostrar datos después de salir.
+    function comprasRunner() {
+      var token=comprasToken,epoch=comprasEpoch,exito=null,fallo=null;
+      var endpoints=['obtenerSolicitudesCompras','obtenerProveedores','guardarDatosProveedorCompleto','guardarRubrosProveedor','obtenerComentariosYEstadoTickets','agregarComentarioTicket','actualizarEstadoTicket','despacharYArchivarTicket','cambiarProveedorSolicitud','reintentarOperacionCompras','consultarOperacionCompras','obtenerHistoricoCompras','obtenerComentariosCompras','obtenerBitacoraCompras'];
+      var proxy=new Proxy({}, {get:function(_,nombre){
+        if(nombre==='withSuccessHandler')return function(fn){exito=fn;return proxy;};
+        if(nombre==='withFailureHandler')return function(fn){fallo=fn;return proxy;};
+        if(endpoints.indexOf(nombre)<0)return undefined;
+        return function(){
+          var args=Array.prototype.slice.call(arguments);
+          function error(e){
+            if(epoch!==comprasEpoch){if(fallo)fallo(new Error('La sesión cambió.'));return;}
+            if(/SESION_REQUERIDA:/.test(comprasError(e))){comprasBloquearPantalla();comprasMensajeLogin('La sesión venció. Verifica nuevamente tu cuenta Google.');}
+            if(fallo)fallo(e);else mostrarToast(comprasError(e));
+          }
+          if(!token||!sesionAutenticada){error(new Error('SESION_REQUERIDA: Inicia sesión con Google.'));return;}
+          var runner=google.script.run.withSuccessHandler(function(r){if(epoch!==comprasEpoch){if(fallo)fallo(new Error('La sesión cambió.'));return;}if(exito)exito(r);}).withFailureHandler(error);
+          runner[nombre].apply(runner,args.concat([token]));
+        };
+      }});
+      return proxy;
+    }
+    function comprasPuedeEditar() { return !!(sesionAutenticada&&comprasUsuario&&comprasUsuario.puedeEditarProveedores); }
+    function comprasExigirEditor() {
+      if(comprasPuedeEditar())return true;
+      mostrarToast('Solo Administradora y Desarrollador pueden añadir o modificar proveedores y rubros.');return false;
+    }
+    function comprasAplicarPermisos() {
+      document.querySelectorAll('[data-compras-edicion]').forEach(function(el){el.hidden=!comprasPuedeEditar();el.disabled=!comprasPuedeEditar();});
+      document.querySelectorAll('[onclick]').forEach(function(el){
+        if(/^(abrirModalFormProveedor|abrirModalGestionRubros|guardarRubrosModalEnSheets)\(/.test(el.getAttribute('onclick')||'')){
+          el.dataset.comprasEdicion='';el.hidden=!comprasPuedeEditar();el.disabled=!comprasPuedeEditar();
+        }
+      });
+      var guardar=document.getElementById('btn-submit-form-prov');if(guardar)guardar.disabled=!comprasPuedeEditar();
+    }
+    async function verificarSesionPrevia() {
+      // Las antiguas banderas de navegador ya no autorizan ningún acceso.
+      try{sessionStorage.removeItem('rim_compras_autenticado');sessionStorage.removeItem('rim_compras_usuario');}catch(e){}
+      comprasAplicarPermisos();var token=comprasStorage();if(!token)return;
+      var epoch=comprasEpoch;
+      try{var u=await comprasRpcPublico('obtenerSesionCompras',[token]);if(epoch!==comprasEpoch)return;comprasToken=token;comprasStorage(token);desbloquearPantalla(u);}
+      catch(e){
+        if(epoch!==comprasEpoch)return;
+        if(/SESION_REQUERIDA/.test(comprasError(e))){comprasStorage(null);comprasMensajeLogin('Tu sesión venció. Ingresa tu correo y verifica con Google.');}
+        else comprasMensajeLogin('No se pudo recuperar la sesión por un problema de conexión. Recarga para reintentar.');
+      }
+    }
+    async function intentarAcceso(e) {
+      if(e)e.preventDefault();if(comprasLoginActivo)return;
+      var correo=document.getElementById('login-email').value.trim().toLowerCase();
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)){comprasMensajeLogin('Escribe un correo válido.');return;}
+      comprasLoginActivo=true;var intento=++comprasLoginIntento;
+      comprasMensajeLogin('');var btn=document.getElementById('btn-login-submit');btn.disabled=true;document.getElementById('compras-login-boton-texto').textContent='Verificando con Google…';
+      document.getElementById('compras-cancelar-acceso').hidden=false;
+      comprasVentana=window.open('about:blank','_blank','width=520,height=680');
+      try{
+        if(!comprasVentana)throw new Error('Permite ventanas emergentes para verificar tu cuenta Google.');
+        comprasVentana.opener=null;
+        var tx=await comprasRpcPublico('prepararInicioSesionCompras',[correo]);
+        if(intento!==comprasLoginIntento)return;
+        comprasVentana.location.href=tx.url;var limite=Date.now()+600000;
+        async function consultar(){
+          try{
+            var r=await comprasRpcPublico('consultarInicioSesionCompras',[tx.estado,tx.consulta]);
+            if(intento!==comprasLoginIntento)return;
+            if(!r.pendiente){comprasToken=r.token;comprasStorage(r.token);comprasTerminarLogin();desbloquearPantalla(r.usuario);return;}
+            if(Date.now()>limite)throw new Error('El acceso venció. Inténtalo nuevamente.');
+            // Google puede separar el WindowProxy mediante COOP; no usar popup.closed.
+            comprasLoginTimer=setTimeout(consultar,2500);
+          }catch(err){if(intento!==comprasLoginIntento)return;comprasMensajeLogin(comprasError(err));comprasTerminarLogin();}
+        }
+        consultar();
+      }catch(err){if(intento!==comprasLoginIntento)return;if(comprasVentana){try{comprasVentana.close();}catch(ignorado){}}comprasMensajeLogin(comprasError(err));comprasTerminarLogin();}
+    }
+    function comprasTerminarLogin(){clearTimeout(comprasLoginTimer);comprasLoginActivo=false;document.getElementById('btn-login-submit').disabled=false;document.getElementById('compras-login-boton-texto').textContent='Verificar con Google e ingresar';document.getElementById('compras-cancelar-acceso').hidden=true;}
+    function comprasCancelarAcceso(){comprasLoginIntento++;if(comprasVentana){try{comprasVentana.close();}catch(e){}}comprasTerminarLogin();comprasMensajeLogin('');}
+    function desbloquearPantalla(usuario) {
+      if(!comprasToken||!usuario||!usuario.email)return;
+      comprasEpoch++;comprasUsuario=usuario;sesionAutenticada=true;
+      document.getElementById('lbl-usuario-conectado').textContent=usuario.nombre+' ('+usuario.etiqueta+')';
+      var wrapper=document.getElementById('app-wrapper');wrapper.classList.remove('app-blur-active');wrapper.classList.add('app-blur-inactive');wrapper.inert=false;
+      var overlay=document.getElementById('overlay-login');overlay.classList.add('opacity-0','pointer-events-none');clearTimeout(comprasOverlayTimer);
+      comprasOverlayTimer=setTimeout(function(){if(sesionAutenticada)overlay.classList.add('hidden');},400);
+      comprasAplicarPermisos();cargarProveedores(true);cargarSolicitudes(false);
+    }
+    function comprasBloquearPantalla(){
+      comprasEpoch++;clearTimeout(comprasOverlayTimer);clearTimeout(comprasHistoricoTimer);comprasHistoricoVersion++;comprasHistoricoOcupado=false;comprasHistoricoCargado=false;comprasHistoricoPagina=1;comprasComentariosCursor=1;comprasComentariosOcupado=false;comprasProveedoresOcupado=false;comprasOperando={};comprasPendientesServidor=[];comprasRevisionCargas++;comprasRecargaPendiente=false;comprasResumenHistorico={tickets:0,piezas:0};document.getElementById('compras-operaciones-pendientes').replaceChildren();document.getElementById('compras-lista-actividad').replaceChildren();document.getElementById('btn-enviar-cmt-compras').disabled=false;comprasToken='';comprasUsuario=null;sesionAutenticada=false;comprasStorage(null);
+      solicitudesCrudas=[];historicoCrudo=[];ticketsAgrupados=[];ticketsHistoricoAgrupados=[];directorioProveedores=[];mapaProveedoresPorPRV={};
+      comentariosComprasGlobales=[];notificacionesCompras=[];ticketComentariosComprasActivo=null;sincronizacionEnCurso=false;
+      var wrapper=document.getElementById('app-wrapper');wrapper.classList.remove('app-blur-inactive');wrapper.classList.add('app-blur-active');wrapper.inert=true;
+      var overlay=document.getElementById('overlay-login');overlay.classList.remove('hidden','opacity-0','pointer-events-none');
+      document.getElementById('lbl-usuario-conectado').textContent='Sin sesión';
+      ['modal-form-proveedor','modal-rubros-prov','modal-comentarios-compras','modal-proveedor','compras-modal-actividad'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.add('hidden');});
+      document.querySelectorAll('#app-wrapper input,#app-wrapper textarea').forEach(function(el){el.value='';});
+      procesarYAgrupar(true);renderizarDirectorioProveedores();actualizarBadgeCampanaCompras();renderizarDropdownNotificacionesCompras();
+      comprasAplicarPermisos();document.getElementById('login-email').focus();
+    }
+    function cerrarSesion(){var token=comprasToken;comprasCancelarAcceso();comprasBloquearPantalla();if(token)comprasRpcPublico('cerrarSesionCompras',[token]).catch(function(){mostrarToast('Sesión local cerrada. La sesión del servidor caducará automáticamente si no se pudo revocar.');});}
+
+    // ==========================================
+    // ESTADO GENERAL & COMUNICACIÓN
+    // ==========================================
+    let solicitudesCrudas = [];
+    let ticketsAgrupados = [];
+    let historicoCrudo = [];
+    let ticketsHistoricoAgrupados = [];
+    let intervaloPolling = null;
+    let sincronizacionEnCurso = false;
+
+    // Directorio de proveedores, equivalencias PRV y rubros
+    let directorioProveedores = [];
+    let mapaProveedoresPorPRV = {};
+    let rubroFiltroSeleccionado = "TODOS";
+    let proveedorEditandoRubros = null;
+    let tagsRubrosTemporales = [];
+
+    // ==========================================
+    // CARGA Y GESTIÓN DE PROVEEDORES
+    // ==========================================
+    function obtenerInfoProveedor(codigoPRV) {
+      var cod = String(codigoPRV || "").trim().toUpperCase();
+      if (mapaProveedoresPorPRV[cod]) {
+        return mapaProveedoresPorPRV[cod];
+      }
+      return {
+        nombre: cod || "PRV",
+        codigo: cod,
+        origen: "Venezuela",
+        tiempo_maracay: "1 día",
+        tiempo_el_tigre: "1-2 días",
+        tiempo_barquisimeto: "1-2 días",
+        rubros: []
+      };
+    }
+
+    function procesarDatosProveedores(lista) {
+      directorioProveedores = lista || [];
+      mapaProveedoresPorPRV = {};
+      var todosLosRubros = new Set();
+
+      directorioProveedores.forEach(function(p) {
+        if (p.codigo) {
+          mapaProveedoresPorPRV[p.codigo.toUpperCase()] = p;
+        }
+        (p.rubros || []).forEach(function(r) {
+          if (r.trim()) todosLosRubros.add(r.trim());
+        });
+      });
+
+      var badgeProv = document.getElementById('nav-badge-proveedores');
+      if (badgeProv) badgeProv.innerText = directorioProveedores.length;
+
+      renderizarPillsRubros(Array.from(todosLosRubros));
+      renderizarDirectorioProveedores();
+    }
+
+    var comprasRubrosExpandidos = false;
+
+    function comprasAlternarRubros() {
+      comprasRubrosExpandidos = !comprasRubrosExpandidos;
+      renderizarPillsRubros();
+    }
+
+    function renderizarPillsRubros(rubrosList) {
+      var cont = document.getElementById('contenedor-pills-rubros');
+      if (!cont) return;
+
+      var rubros = rubrosList;
+      if (!rubros) {
+        var setR = new Set();
+        directorioProveedores.forEach(function(p) {
+          (p.rubros || []).forEach(function(r) { if (r.trim()) setR.add(r.trim()); });
+        });
+        rubros = Array.from(setR);
+      }
+
+      var html = '<button type="button" onclick="filtrarPorRubroPill(\'TODOS\')" class="px-2.5 py-1 rounded-lg font-bold text-xs transition-all ' + (rubroFiltroSeleccionado === 'TODOS' ? 'bg-[#163628] text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200') + '">Todos (' + directorioProveedores.length + ')</button>';
+
+      var visibles = comprasRubrosExpandidos ? rubros : rubros.slice(0, 4);
+      // Conservar visible un filtro seleccionado fuera de las primeras cuatro etiquetas.
+      if (!comprasRubrosExpandidos && rubroFiltroSeleccionado !== 'TODOS' && !visibles.some(function(r) { return r.toLowerCase() === rubroFiltroSeleccionado.toLowerCase(); })) {
+        var seleccionada = rubros.find(function(r) { return r.toLowerCase() === rubroFiltroSeleccionado.toLowerCase(); });
+        if (seleccionada) visibles = visibles.concat([seleccionada]);
+      }
+      visibles.forEach(function(r) {
+        var cant = directorioProveedores.filter(function(p) {
+          return (p.rubros || []).some(function(pr) { return pr.toLowerCase() === r.toLowerCase(); });
+        }).length;
+        var activo = rubroFiltroSeleccionado.toLowerCase() === r.toLowerCase();
+        html += '<button type="button" onclick="filtrarPorRubroPill(\'' + comprasArgumento(r) + '\')" class="px-2.5 py-1 rounded-lg font-bold text-xs transition-all ' + (activo ? 'bg-emerald-700 text-white shadow-xs' : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/60') + '">' + comprasHtml(r) + ' (' + cant + ')</button>';
+      });
+
+      cont.innerHTML = '<div id="compras-lista-rubros" class="flex flex-wrap gap-1.5 w-full"' + (comprasRubrosExpandidos ? ' style="max-height:180px;overflow-y:auto;padding:2px"' : '') + '>' + html + '</div>';
+      if (rubros.length > 4) {
+        cont.innerHTML += '<button type="button" onclick="comprasAlternarRubros()" aria-controls="compras-lista-rubros" aria-expanded="' + comprasRubrosExpandidos + '" class="px-2.5 py-1 rounded-lg text-xs font-bold text-emerald-800 underline underline-offset-2 hover:bg-emerald-50">' + (comprasRubrosExpandidos ? 'Mostrar menos' : 'Mostrar todas (' + rubros.length + ')') + '</button>';
+      }
+    }
+
+    function filtrarPorRubroPill(rubro) {
+      rubroFiltroSeleccionado = rubro;
+      var lbl = document.getElementById('lbl-rubro-activo');
+      if (lbl) {
+        if (rubro === 'TODOS') {
+          lbl.classList.add('hidden');
+        } else {
+          lbl.innerText = rubro;
+          lbl.classList.remove('hidden');
+        }
+      }
+      renderizarPillsRubros();
+      renderizarDirectorioProveedores();
+    }
+
+    let notificacionesCompras = [];
+    let comentariosComprasGlobales = [];
+    let ticketsConocidosIds = new Set();
+    let ticketComentariosComprasActivo = null;
+    let audioCtxCompras = null;
+
+    function desbloquearAudioNativo() {
+      try {
+        if (!audioCtxCompras) {
+          audioCtxCompras = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtxCompras.state === 'suspended') {
+          audioCtxCompras.resume();
+        }
+      } catch (e) {}
+    }
+
+    function reproducirSonidoCompras() {
+      try {
+        desbloquearAudioNativo();
+        if (!audioCtxCompras) return;
+        var osc = audioCtxCompras.createOscillator();
+        var gain = audioCtxCompras.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, audioCtxCompras.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(783.99, audioCtxCompras.currentTime + 0.15);
+
+        gain.gain.setValueAtTime(0.2, audioCtxCompras.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtxCompras.currentTime + 0.45);
+
+        osc.connect(gain);
+        gain.connect(audioCtxCompras.destination);
+
+        osc.start();
+        osc.stop(audioCtxCompras.currentTime + 0.45);
+      } catch (e) {}
+    }
+
+    function togglePanelNotificacionesCompras(e) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      desbloquearAudioNativo();
+      var drop = document.getElementById('dropdown-notif-compras');
+      if (drop) {
+        drop.classList.toggle('hidden');
+        if (!drop.classList.contains('hidden')) {
+          renderizarDropdownNotificacionesCompras();
+        }
+      }
+    }
+
+    // Cerrar el dropdown al hacer clic fuera
+    document.addEventListener('click', function(evt) {
+      var cont = document.getElementById('contenedor-campana-compras');
+      var drop = document.getElementById('dropdown-notif-compras');
+      if (drop && !drop.classList.contains('hidden')) {
+        if (cont && !cont.contains(evt.target)) {
+          drop.classList.add('hidden');
+        }
+      }
+    });
+
+    function actualizarBadgeCampanaCompras() {
+      var noLeidas = notificacionesCompras.filter(function(n) { return !n.leido; }).length;
+      var badge = document.getElementById('badge-notif-compras');
+      if (badge) {
+        if (noLeidas > 0) {
+          badge.innerText = noLeidas > 99 ? '99+' : noLeidas;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+    }
+
+    function renderizarDirectorioProveedores() {
+      var cont = document.getElementById('grilla-contactos-proveedores');
+      if (!cont) return;
+
+      var q = (document.getElementById('filtro-proveedor-busqueda') ? document.getElementById('filtro-proveedor-busqueda').value : "").toLowerCase().trim();
+
+      var filtrados = directorioProveedores.filter(function(p) {
+        if (rubroFiltroSeleccionado !== "TODOS") {
+          var tieneRubro = (p.rubros || []).some(function(r) { return r.toLowerCase() === rubroFiltroSeleccionado.toLowerCase(); });
+          if (!tieneRubro) return false;
+        }
+
+        if (q) {
+          var texto = (p.nombre + " " + p.codigo + " " + p.origen + " " + (p.rubros || []).join(" ")).toLowerCase();
+          if (texto.indexOf(q) === -1) return false;
+        }
+
+        return true;
+      });
+
+      if (filtrados.length === 0) {
+        cont.innerHTML = 
+          '<div class="col-span-full py-16 text-center text-slate-400 bg-white rounded-2xl border border-slate-200 p-6">' +
+            '<i class="fa-solid fa-address-book text-3xl text-slate-300 mb-2"></i>' +
+            '<p class="text-xs font-bold text-slate-700">No se encontraron proveedores</p>' +
+            '<p class="text-[11px] text-slate-400 mt-1">Prueba limpiando el buscador o cambiando el filtro de rubro</p>' +
+          '</div>';
+        return;
+      }
+
+      var html = "";
+      filtrados.forEach(function(p) {
+        var tagsHtml = "";
+        if (p.rubros && p.rubros.length > 0) {
+          p.rubros.forEach(function(r) {
+            tagsHtml += '<span class="text-[9.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2 py-0.5 rounded-md">' + comprasHtml(r) + '</span>';
+          });
+        } else {
+          tagsHtml = '<span class="text-[9.5px] italic text-slate-400">Sin rubros asignados</span>';
+        }
+
+        var codigoEscapado = comprasArgumento(p.codigo);
+        var nombreEscapado = comprasArgumento(p.nombre);
+
+        html += 
+          '<div class="kpi-card p-4 rounded-2xl flex flex-col justify-between border border-slate-200/90 hover:border-emerald-300 shadow-xs transition-all">' +
+            '<div>' +
+              '<div class="flex items-start justify-between gap-2 mb-2">' +
+                '<div class="truncate pr-1">' +
+                  '<h4 class="text-sm font-black text-slate-900 leading-tight truncate">' + comprasHtml(p.nombre) + '</h4>' +
+                  '<div class="flex items-center gap-1.5 mt-0.5 flex-wrap">' +
+                    '<span class="text-[10px] font-mono font-bold bg-slate-100 text-[#163628] px-1.5 py-0.2 rounded border border-slate-300">' + comprasHtml(p.codigo) + '</span>' +
+                    '<span class="text-[10.5px] text-slate-500 font-medium flex items-center gap-1"><i class="fa-solid fa-location-dot text-[9px] text-emerald-600"></i>' + comprasHtml(p.origen) + '</span>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="flex items-center gap-1 shrink-0">' +
+                  '<button type="button" onclick="abrirModalFormProveedor(\'' + codigoEscapado + '\')" class="p-1.5 text-xs bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-800 border border-slate-200 rounded-lg shadow-2xs transition-colors" title="Editar todos los campos del proveedor">' +
+                    '<i class="fa-solid fa-pen-to-square"></i>' +
+                  '</button>' +
+                  '<button type="button" onclick="abrirModalGestionRubros(\'' + codigoEscapado + '\', \'' + nombreEscapado + '\')" class="p-1.5 text-xs bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-800 border border-slate-200 rounded-lg shadow-2xs transition-colors" title="Gestionar solo etiquetas de rubros">' +
+                    '<i class="fa-solid fa-tags"></i>' +
+                  '</button>' +
+                '</div>' +
+              '</div>' +
+
+              (p.contacto ? ('<div class="mb-2 text-[10.5px] text-slate-600 flex items-center gap-1.5 bg-emerald-50/50 p-1.5 rounded-lg border border-emerald-100/70"><i class="fa-solid fa-address-card text-emerald-700 text-[10px]"></i><span class="truncate font-semibold">' + comprasHtml(p.contacto) + '</span></div>') : '') +
+
+              // Tiempos de entrega sugeridos por sede
+              '<div class="my-2.5 p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 space-y-1.5 text-[11px]">' +
+                '<div class="text-[9.5px] font-black uppercase text-slate-400 tracking-wider mb-1 flex items-center gap-1"><i class="fa-solid fa-truck-clock text-emerald-600"></i> Tiempos de Entrega Estimados:</div>' +
+                '<div class="flex justify-between items-center"><span class="text-slate-600 font-medium">Maracay:</span><strong class="font-bold text-slate-900 font-mono text-[10.5px]">' + comprasHtml(p.tiempo_maracay) + '</strong></div>' +
+                '<div class="flex justify-between items-center"><span class="text-slate-600 font-medium">El Tigre:</span><strong class="font-bold text-slate-900 font-mono text-[10.5px]">' + comprasHtml(p.tiempo_el_tigre) + '</strong></div>' +
+                '<div class="flex justify-between items-center"><span class="text-slate-600 font-medium">Barquisimeto:</span><strong class="font-bold text-slate-900 font-mono text-[10.5px]">' + comprasHtml(p.tiempo_barquisimeto) + '</strong></div>' +
+              '</div>' +
+
+              // Rubros
+              '<div class="space-y-1">' +
+                '<div class="text-[9.5px] font-black uppercase text-slate-400">Rubros que maneja:</div>' +
+                '<div class="flex flex-wrap gap-1">' + tagsHtml + '</div>' +
+              '</div>' +
+            '</div>' +
+
+            '<div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10.5px]">' +
+              '<span class="text-slate-400 font-mono font-medium">Registro activo</span>' +
+              '<button type="button" onclick="filtrarTicketsPorProveedor(\'' + codigoEscapado + '\')" class="text-xs font-black text-emerald-800 hover:text-emerald-900 flex items-center gap-1 transition-colors">' +
+                '<span>Ver Requerimientos</span>' +
+                '<i class="fa-solid fa-arrow-right text-[10px]"></i>' +
+              '</button>' +
+            '</div>' +
+          '</div>';
+      });
+
+      cont.innerHTML = html;
+      comprasAplicarPermisos();
+    }
+
+    function filtrarTicketsPorProveedor(codigoPRV) {
+      cambiarVistaCompras('pedidos');
+      var filtro = document.getElementById('filtro-busqueda');
+      if (filtro) {
+        filtro.value = codigoPRV;
+        aplicarFiltros();
+      }
+    }
+
+    // ==========================================
+    // MODAL FORMULARIO: CREAR Y EDITAR PROVEEDOR
+    // ==========================================
+    function abrirModalFormProveedor(codigoPRV) {
+      if (!comprasExigirEditor()) return;
+      var modal = document.getElementById('modal-form-proveedor');
+      var titulo = document.getElementById('titulo-modal-form-prov');
+      var icono = document.getElementById('icono-modal-form-prov');
+
+      var prov = codigoPRV ? directorioProveedores.find(function(p) { return p.codigo === codigoPRV; }) : null;
+
+      if (prov) {
+        if (titulo) titulo.innerText = "Editar Proveedor: " + prov.nombre;
+        if (icono) icono.className = "fa-solid fa-pen-to-square text-sm";
+        document.getElementById('form-prov-codigo-original').value = prov.codigo;
+        document.getElementById('form-prov-nombre').value = prov.nombre || "";
+        document.getElementById('form-prov-codigo').value = prov.codigo || "";
+        document.getElementById('form-prov-origen').value = prov.origen || "";
+        document.getElementById('form-prov-contacto').value = prov.contacto || "";
+        document.getElementById('form-prov-t-mcy').value = prov.tiempo_maracay || "1 día";
+        document.getElementById('form-prov-t-tigre').value = prov.tiempo_el_tigre || "1-2 días";
+        document.getElementById('form-prov-t-bqto').value = prov.tiempo_barquisimeto || "1-2 días";
+        document.getElementById('form-prov-rubros').value = (prov.rubros || []).join(", ");
+      } else {
+        if (titulo) titulo.innerText = "Registrar Nuevo Proveedor";
+        if (icono) icono.className = "fa-solid fa-user-plus text-sm";
+        document.getElementById('form-prov-codigo-original').value = "";
+        document.getElementById('form-prov-nombre').value = "";
+        document.getElementById('form-prov-codigo').value = "";
+        document.getElementById('form-prov-origen').value = "";
+        document.getElementById('form-prov-contacto').value = "";
+        document.getElementById('form-prov-t-mcy').value = "1 día";
+        document.getElementById('form-prov-t-tigre').value = "1-2 días";
+        document.getElementById('form-prov-t-bqto').value = "1-2 días";
+        document.getElementById('form-prov-rubros').value = "";
+      }
+
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function cerrarModalFormProveedor() {
+      var modal = document.getElementById('modal-form-proveedor');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function guardarFormularioProveedor(e) {
+      if (e) e.preventDefault(); if (!comprasExigirEditor()) return;
+      if (e) e.preventDefault();
+
+      var codigoOriginal = (document.getElementById('form-prov-codigo-original').value || "").trim().toUpperCase();
+      var nombre = (document.getElementById('form-prov-nombre').value || "").trim();
+      var codigo = (document.getElementById('form-prov-codigo').value || "").trim().toUpperCase();
+      var origen = (document.getElementById('form-prov-origen').value || "").trim();
+      var contacto = (document.getElementById('form-prov-contacto').value || "").trim();
+      var tMcy = (document.getElementById('form-prov-t-mcy').value || "").trim();
+      var tTigre = (document.getElementById('form-prov-t-tigre').value || "").trim();
+      var tBqto = (document.getElementById('form-prov-t-bqto').value || "").trim();
+      var rubrosStr = (document.getElementById('form-prov-rubros').value || "").trim();
+
+      if (!nombre || !codigo) {
+        mostrarToast("Nombre y Código PRV son obligatorios");
+        return;
+      }
+
+      var rubrosArr = rubrosStr ? rubrosStr.split(",").map(function(s) { return s.trim(); }).filter(Boolean) : [];
+
+      var payload = {
+        codigoOriginal: codigoOriginal || codigo,
+        nombre: nombre,
+        codigo: codigo,
+        origen: origen,
+        contacto: contacto,
+        tiempo_maracay: tMcy || "1 día",
+        tiempo_el_tigre: tTigre || "1-2 días",
+        tiempo_barquisimeto: tBqto || "1-2 días",
+        rubros: rubrosArr
+      };
+
+      var btn = document.getElementById('btn-submit-form-prov');
+      if (btn) btn.disabled = true;
+
+      mostrarToast("Guardando datos del proveedor...");
+
+      if (typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.guardarDatosProveedorCompleto === 'function') {
+        comprasRunner()
+          .withSuccessHandler(function(res) {
+            if (btn) btn.disabled = false;
+            if (res && res.exito) {
+              mostrarToast("¡Proveedor guardado exitosamente!");
+              cerrarModalFormProveedor();
+              cargarProveedores(false);
+            } else {
+              mostrarToast("Error: " + (res.error || "No se pudo guardar"));
+            }
+          })
+          .withFailureHandler(function(err) {
+            if (btn) btn.disabled = false;
+            mostrarToast("Error al guardar: " + err);
+          })
+          .guardarDatosProveedorCompleto(payload);
+      } else {
+        if (btn) btn.disabled = false;
+        var idx = directorioProveedores.findIndex(function(p) { return p.codigo === (codigoOriginal || codigo); });
+        if (idx !== -1) {
+          directorioProveedores[idx] = payload;
+        } else {
+          directorioProveedores.push(payload);
+        }
+        procesarDatosProveedores(directorioProveedores);
+        cerrarModalFormProveedor();
+        mostrarToast("Simulación: Proveedor guardado");
+      }
+    }
+
+    // Modal para editar rubros por proveedor
+    function abrirModalGestionRubros(codigoPRV, nombreProveedor) {
+      if (!comprasExigirEditor()) return;
+      proveedorEditandoRubros = directorioProveedores.find(function(p) { return p.codigo === codigoPRV; }) || { codigo: codigoPRV, nombre: nombreProveedor, rubros: [] };
+      tagsRubrosTemporales = (proveedorEditandoRubros.rubros || []).slice();
+
+      document.getElementById('lbl-modal-rubros-nombre').innerText = proveedorEditandoRubros.nombre + " (" + proveedorEditandoRubros.codigo + ")";
+      document.getElementById('modal-nuevo-rubro-input').value = "";
+      document.getElementById('modal-rubros-prov').classList.remove('hidden');
+      renderizarTagsEnModal();
+    }
+
+    function cerrarModalRubros() {
+      document.getElementById('modal-rubros-prov').classList.add('hidden');
+      proveedorEditandoRubros = null;
+      tagsRubrosTemporales = [];
+    }
+
+    function renderizarTagsEnModal() {
+      var cont = document.getElementById('modal-rubros-lista-tags');
+      if (!cont) return;
+
+      if (tagsRubrosTemporales.length === 0) {
+        cont.innerHTML = '<span class="text-slate-400 text-xs italic p-1">Sin etiquetas añadidas. Agrega una abajo.</span>';
+        return;
+      }
+
+      var html = "";
+      tagsRubrosTemporales.forEach(function(tag, idx) {
+        html += 
+          '<span class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-900 text-xs font-bold px-2.5 py-1 rounded-lg border border-emerald-300 shadow-2xs">' +
+            '<span>' + comprasHtml(tag) + '</span>' +
+            '<button type="button" onclick="eliminarTagRubroModal(' + idx + ')" class="text-emerald-700 hover:text-rose-600 ml-1 text-xs"><i class="fa-solid fa-xmark"></i></button>' +
+          '</span>';
+      });
+
+      cont.innerHTML = html;
+    }
+
+    function agregarTagRubroModal() {
+      var inp = document.getElementById('modal-nuevo-rubro-input');
+      var val = (inp ? inp.value : "").trim();
+      if (!val) return;
+
+      var partes = val.split(/[,;]/).map(function(s) { return s.trim(); }).filter(Boolean);
+      partes.forEach(function(p) {
+        if (!tagsRubrosTemporales.some(function(t) { return t.toLowerCase() === p.toLowerCase(); })) {
+          tagsRubrosTemporales.push(p);
+        }
+      });
+
+      if (inp) inp.value = "";
+      renderizarTagsEnModal();
+    }
+
+    function anadirTagSugerido(sug) {
+      if (!tagsRubrosTemporales.some(function(t) { return t.toLowerCase() === sug.toLowerCase(); })) {
+        tagsRubrosTemporales.push(sug);
+        renderizarTagsEnModal();
+      }
+    }
+
+    function eliminarTagRubroModal(idx) {
+      tagsRubrosTemporales.splice(idx, 1);
+      renderizarTagsEnModal();
+    }
+
+    function guardarRubrosModalEnSheets() {
+      if (!comprasExigirEditor()) return;
+      if (!proveedorEditandoRubros) return;
+
+      var btn = document.getElementById('btn-guardar-rubros');
+      if (btn) btn.disabled = true;
+
+      mostrarToast("Guardando rubros de " + proveedorEditandoRubros.codigo + " en la hoja...");
+
+      if (typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.guardarRubrosProveedor === 'function') {
+        comprasRunner()
+          .withSuccessHandler(function(res) {
+            if (btn) btn.disabled = false;
+            if (res && res.exito) {
+              proveedorEditandoRubros.rubros = tagsRubrosTemporales.slice();
+              var provEnLista = directorioProveedores.find(function(p) { return p.codigo === proveedorEditandoRubros.codigo; });
+              if (provEnLista) provEnLista.rubros = tagsRubrosTemporales.slice();
+              renderizarPillsRubros();
+              renderizarDirectorioProveedores();
+              cerrarModalRubros();
+              mostrarToast("¡Rubros guardados correctamente!");
+            } else {
+              mostrarToast("Error: " + (res.error || "No se pudo guardar"));
+            }
+          })
+          .withFailureHandler(function(err) {
+            if (btn) btn.disabled = false;
+            mostrarToast("Error de conexión: " + err);
+          })
+          .guardarRubrosProveedor(proveedorEditandoRubros.codigo, tagsRubrosTemporales);
+      } else {
+        if (btn) btn.disabled = false;
+        proveedorEditandoRubros.rubros = tagsRubrosTemporales.slice();
+        var provEnLista = directorioProveedores.find(function(p) { return p.codigo === proveedorEditandoRubros.codigo; });
+        if (provEnLista) provEnLista.rubros = tagsRubrosTemporales.slice();
+        renderizarPillsRubros();
+        renderizarDirectorioProveedores();
+        cerrarModalRubros();
+        mostrarToast("Simulación: Rubros guardados");
+      }
+    }
+
+    function renderizarDropdownNotificacionesCompras() {
+      var cont = document.getElementById('lista-notif-compras-dropdown');
+      if (!cont) return;
+
+      if (notificacionesCompras.length === 0) {
+        cont.innerHTML = '<div class="p-6 text-center text-slate-400 text-xs">Sin avisos nuevos</div>';
+        return;
+      }
+
+      var html = "";
+      notificacionesCompras.forEach(function(n, idx) {
+        var bg = n.leido ? 'bg-white' : 'bg-emerald-50/70 font-semibold';
+        var icon = n.tipo === 'nuevo_pedido' ? 'fa-box text-emerald-600' : 'fa-comment-dots text-sky-600';
+
+        html += 
+          '<div onclick="clicNotificacionCompras(' + idx + ', \'' + comprasArgumento(n.ticket) + '\')" class="p-3 hover:bg-slate-50 cursor-pointer transition-colors ' + bg + '">' +
+            '<div class="flex items-start justify-between gap-2">' +
+              '<div class="flex items-center gap-1.5">' +
+                '<i class="fa-solid ' + icon + ' text-xs"></i>' +
+                '<span class="text-xs font-black text-slate-900">' + comprasHtml(n.titulo) + '</span>' +
+              '</div>' +
+              '<span class="text-[9px] text-slate-400 font-mono">' + (n.fecha || '') + '</span>' +
+            '</div>' +
+            '<p class="text-[11px] text-slate-600 mt-1 leading-snug">' + comprasHtml(n.mensaje) + '</p>' +
+          '</div>';
+      });
+
+      cont.innerHTML = html;
+    }
+
+    function clicNotificacionCompras(idx, ticket) {
+      if (notificacionesCompras[idx]) {
+        notificacionesCompras[idx].leido = true;
+      }
+      actualizarBadgeCampanaCompras();
+      renderizarDropdownNotificacionesCompras();
+      var drop = document.getElementById('dropdown-notif-compras');
+      if (drop) drop.classList.add('hidden');
+      cambiarVistaCompras('pedidos');
+      abrirModalComentariosCompras(ticket);
+    }
+
+    function marcarNotificacionesComprasLeidas() {
+      notificacionesCompras.forEach(function(n) { n.leido = true; });
+      actualizarBadgeCampanaCompras();
+      renderizarDropdownNotificacionesCompras();
+      mostrarToast("Avisos marcados como leídos");
+    }
+
+    // ==========================================
+    // CHAT / NOTAS ENTRE VENTAS Y COMPRAS
+    // ==========================================
+    function abrirModalComentariosCompras(ticket) {
+      ticketComentariosComprasActivo = ticket;
+      document.getElementById('lbl-modal-compras-ticket').innerText = ticket;
+      document.getElementById('modal-comentarios-compras').classList.remove('hidden');
+      renderizarHiloComentariosCompras(ticket);
+    }
+
+    function cerrarModalComentariosCompras() {
+      document.getElementById('modal-comentarios-compras').classList.add('hidden');
+      ticketComentariosComprasActivo = null;
+    }
+
+    function renderizarHiloComentariosCompras(ticket) {
+      var cont = document.getElementById('hilo-comentarios-compras-lista');
+      if (!cont) return;
+
+      var cmts = comentariosComprasGlobales.filter(function(c) { return c.ticket === ticket; });
+
+      if (cmts.length === 0) {
+        cont.innerHTML = 
+          '<div class="py-8 text-center text-slate-400">' +
+            '<i class="fa-regular fa-comment-dots text-3xl mb-1 text-slate-300"></i>' +
+            '<p class="font-bold text-xs">Sin notas en este pedido</p>' +
+            '<p class="text-[11px] text-slate-400">Deja instrucciones o estimaciones de entrega para Ventas</p>' +
+          '</div>';
+        return;
+      }
+
+      var html = "";
+      cmts.forEach(function(c) {
+        var esCompras = c.rol === 'Compras';
+        var burbuja = esCompras ? 'bg-emerald-50 border-emerald-200 text-emerald-950 ml-4' : 'bg-white border-slate-200 text-slate-800 mr-4';
+        var badge = esCompras ? '<span class="bg-emerald-600 text-white text-[9px] px-1.5 py-0.2 rounded font-black">Compras</span>' : '<span class="bg-sky-600 text-white text-[9px] px-1.5 py-0.2 rounded font-black">Ventas</span>';
+
+        html += 
+          '<div class="p-2.5 rounded-xl border shadow-2xs space-y-1 ' + burbuja + '">' +
+            '<div class="flex items-center justify-between text-[10px]">' +
+              '<div class="flex items-center gap-1.5">' +
+                badge +
+                '<strong class="font-bold">' + comprasHtml(c.autor) + '</strong>' +
+              '</div>' +
+              '<span class="text-slate-400 font-mono text-[9px]">' + comprasHtml(c.fecha) + '</span>' +
+            '</div>' +
+            '<p class="text-xs leading-relaxed font-medium">' + comprasHtml(c.mensaje) + '</p>' +
+          '</div>';
+      });
+
+      cont.innerHTML = html;
+      cont.scrollTop = cont.scrollHeight;
+    }
+
+    function procesarComentariosCompras(nuevosCmts) {
+      var vistos = JSON.parse(localStorage.getItem('rim_compras_cmts_vistos:'+(comprasUsuario?comprasUsuario.email:'sin-sesion')) || "[]");
+      var hayNuevos = false;
+
+      nuevosCmts.forEach(function(c) {
+        if ((c.rol === 'Ventas' || c.rol === 'Propietario') && vistos.indexOf(c.id) === -1) {
+          notificacionesCompras.unshift({
+            id: 'notif-c-' + c.id,
+            ticket: c.ticket,
+            tipo: 'comentario',
+            titulo: 'Nota de ' + comprasHtml(c.autor) + ' en ' + c.ticket,
+            mensaje: '"' + c.mensaje + '"',
+            fecha: c.fecha,
+            leido: false
+          });
+          vistos.push(c.id);
+          hayNuevos = true;
+        }
+      });
+
+      localStorage.setItem('rim_compras_cmts_vistos:'+(comprasUsuario?comprasUsuario.email:'sin-sesion'), JSON.stringify(vistos));
+      comentariosComprasGlobales = nuevosCmts;
+
+      if (hayNuevos) {
+        reproducirSonidoCompras();
+        mostrarToast("🔔 Nueva nota recibida de Ventas");
+        actualizarBadgeCampanaCompras();
+        renderizarDropdownNotificacionesCompras();
+      }
+
+      if (ticketComentariosComprasActivo) {
+        renderizarHiloComentariosCompras(ticketComentariosComprasActivo);
+      }
+    }
+
+    // ==========================================
+    // CARGA DE SOLICITUDES & TIEMPO REAL
+    // ==========================================
+    function procesarYAgrupar(esSilencioso) {
+      var mapa = {};
+      var totalPiezas = 0;
+      var urgentesTickets = new Set();
+      var enOrdenCompraTickets = new Set();
+      var pendientesTickets = new Set();
+      var hayTicketNuevo = false;
+
+      var piezasPorSede = { "EL TIGRE": 0, "MARACAY": 0, "BARQUISIMETO": 0 };
+      var estatusPagos = { "PAGADO": 0, "ANTICIPO / ABONO": 0, "CRÉDITO": 0 };
+      var contadorPRV = {};
+
+      // 1. Agrupar primero todos los pedidos por Ticket
+      solicitudesCrudas.forEach(function(s) {
+        var c = parseInt(s.cant, 10) || 1;
+        totalPiezas += c;
+        
+        var stNorm = (s.estado || "PENDIENTE").toUpperCase();
+        if (stNorm === "PENDIENTE") pendientesTickets.add(s.ticket);
+        if (stNorm === "ORDEN_COMPRA" || stNorm.indexOf("ORDEN") !== -1 || stNorm.indexOf("COTIZACION") !== -1) enOrdenCompraTickets.add(s.ticket);
+        if (s.urgencia === "Urgente" && stNorm !== "RECIBIDO" && stNorm !== "RECHAZADO_DEVOLUCION") urgentesTickets.add(s.ticket);
+
+        var sedeNormalizada = (s.sucursal_origen || "EL TIGRE").toUpperCase();
+        if (piezasPorSede[sedeNormalizada] !== undefined) {
+          piezasPorSede[sedeNormalizada] += c;
+        } else {
+          piezasPorSede["EL TIGRE"] += c;
+        }
+
+        var pagoNorm = (s.estatus_pago || "PAGADO").toUpperCase();
+        if (pagoNorm.indexOf("ANTICIPO") !== -1 || pagoNorm.indexOf("ABONO") !== -1) {
+          estatusPagos["ANTICIPO / ABONO"]++;
+        } else if (pagoNorm.indexOf("CRÉDITO") !== -1 || pagoNorm.indexOf("CREDITO") !== -1 || pagoNorm.indexOf("COBRAR") !== -1) {
+          estatusPagos["CRÉDITO"]++;
+        } else {
+          estatusPagos["PAGADO"]++;
+        }
+
+        var prvVal = (s.prv || "PRV").trim();
+        contadorPRV[prvVal] = (contadorPRV[prvVal] || 0) + c;
+
+        if (!mapa[s.ticket]) {
+          mapa[s.ticket] = {
+            ticket: s.ticket,
+            fecha: s.fecha,
+            sucursal_origen: s.sucursal_origen || "EL TIGRE",
+            responsable: s.responsable || "Ventas",
+            sucursal_entrega: s.sucursal_entrega || "EL TIGRE",
+            cliente: s.cliente || "CLIENTE GENERAL",
+            estatus_pago: (pagoNorm.indexOf("ANTICIPO") !== -1 || pagoNorm.indexOf("ABONO") !== -1) ? "ANTICIPO / ABONO" : ((pagoNorm.indexOf("CRÉDITO") !== -1 || pagoNorm.indexOf("CREDITO") !== -1 || pagoNorm.indexOf("COBRAR") !== -1) ? "CRÉDITO" : "PAGADO"),
+            urgencia: s.urgencia || "Normal",
+            motivo: s.motivo || "",
+            estado: s.estado || "PENDIENTE",
+            items: []
+          };
+        }
+        mapa[s.ticket].items.push(s);
+      });
+
+      // 2. Comprobar tickets nuevos persistidos en localStorage
+      var ticketsRegistradosPrevios = JSON.parse(localStorage.getItem('rim_compras_tickets_conocidos:'+(comprasUsuario?comprasUsuario.email:'sin-sesion')) || "null");
+
+      if (ticketsRegistradosPrevios === null) {
+        // Primera vez que entra al sistema: registrar los tickets existentes como base conocida
+        ticketsRegistradosPrevios = Object.keys(mapa);
+        localStorage.setItem('rim_compras_tickets_conocidos:'+(comprasUsuario?comprasUsuario.email:'sin-sesion'), JSON.stringify(ticketsRegistradosPrevios));
+      } else {
+        var setPrevios = new Set(ticketsRegistradosPrevios);
+        Object.values(mapa).forEach(function(tk) {
+          if (!setPrevios.has(tk.ticket)) {
+            var cantItems = tk.items.reduce(function(acc, cur) { return acc + (parseInt(cur.cant, 10) || 1); }, 0);
+            var primerRepuesto = tk.items.length > 0 ? tk.items[0].item : "Repuesto";
+
+            // Verificar que no se duplique la notificación en la lista actual
+            var yaExisteNotif = notificacionesCompras.some(function(n) { return n.idTicket === tk.ticket; });
+            if (!yaExisteNotif) {
+              notificacionesCompras.unshift({
+                id: 'notif-ticket-' + tk.ticket,
+                idTicket: tk.ticket,
+                ticket: tk.ticket,
+                tipo: 'nuevo_pedido',
+                titulo: 'Nuevo Pedido: ' + tk.ticket,
+                mensaje: (tk.responsable || 'Vendedora') + ' (' + tk.sucursal_origen + ') solicita ' + cantItems + ' pzas · ' + primerRepuesto,
+                fecha: tk.fecha || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                leido: false
+              });
+              hayTicketNuevo = true;
+              setPrevios.add(tk.ticket);
+            }
+          }
+        });
+        localStorage.setItem('rim_compras_tickets_conocidos:'+(comprasUsuario?comprasUsuario.email:'sin-sesion'), JSON.stringify(Array.from(setPrevios)));
+      }
+
+      if (hayTicketNuevo) {
+        reproducirSonidoCompras();
+        mostrarToast("🔔 Nuevo pedido entrante de Ventas");
+        actualizarBadgeCampanaCompras();
+        renderizarDropdownNotificacionesCompras();
+      }
+
+      var mapaHist = {};
+      var totalPiezasHist = 0;
+      historicoCrudo.forEach(function(h) {
+        totalPiezasHist += (parseInt(h.cant, 10) || 1);
+        if (!mapaHist[h.ticket]) {
+          mapaHist[h.ticket] = {
+            ticket: h.ticket,
+            fecha: h.fecha,
+            fecha_despacho: h.fecha_despacho,
+            sucursal_origen: h.sucursal_origen,
+            responsable: h.responsable,
+            sucursal_entrega: h.sucursal_entrega,
+            cliente: h.cliente,
+            estatus_pago: h.estatus_pago,
+            items: []
+          };
+        }
+        mapaHist[h.ticket].items.push(h);
+      });
+      ticketsHistoricoAgrupados = Object.values(mapaHist);
+
+      document.getElementById('kpi-pendientes').innerText = pendientesTickets.size;
+      document.getElementById('kpi-urgentes').innerText = urgentesTickets.size;
+      document.getElementById('kpi-cotizando').innerText = enOrdenCompraTickets.size;
+      document.getElementById('kpi-piezas').innerText = totalPiezas.toLocaleString('es-VE');
+      document.getElementById('kpi-despachados').innerText = comprasResumenHistorico.tickets;
+      document.getElementById('lbl-despachados-pzas').innerText = comprasResumenHistorico.piezas.toLocaleString('es-VE');
+
+      ticketsAgrupados = Object.values(mapa);
+
+      var navBadge = document.getElementById('nav-badge-pedidos');
+      if (navBadge) navBadge.innerText = ticketsAgrupados.length;
+
+      var navHistBadge = document.getElementById('nav-badge-historico');
+      if (navHistBadge) navHistBadge.innerText = comprasResumenHistorico.tickets;
+
+      var dashTotalTickets = document.getElementById('dash-total-tickets-lbl');
+      if (dashTotalTickets) dashTotalTickets.innerText = ticketsAgrupados.length + " activos";
+
+      var totalSedes = piezasPorSede["EL TIGRE"] + piezasPorSede["MARACAY"] + piezasPorSede["BARQUISIMETO"] || 1;
+      var pctTigre = Math.round((piezasPorSede["EL TIGRE"] / totalSedes) * 100);
+      var pctMaracay = Math.round((piezasPorSede["MARACAY"] / totalSedes) * 100);
+      var pctBqto = Math.round((piezasPorSede["BARQUISIMETO"] / totalSedes) * 100);
+
+      document.getElementById('dash-suc-tigre-cnt').innerText = piezasPorSede["EL TIGRE"].toLocaleString('es-VE') + " pzas (" + pctTigre + "%)";
+      document.getElementById('dash-suc-maracay-cnt').innerText = piezasPorSede["MARACAY"].toLocaleString('es-VE') + " pzas (" + pctMaracay + "%)";
+      document.getElementById('dash-suc-bqto-cnt').innerText = piezasPorSede["BARQUISIMETO"].toLocaleString('es-VE') + " pzas (" + pctBqto + "%)";
+
+      document.getElementById('dash-suc-tigre-bar').style.width = pctTigre + "%";
+      document.getElementById('dash-suc-maracay-bar').style.width = pctMaracay + "%";
+      document.getElementById('dash-suc-bqto-bar').style.width = pctBqto + "%";
+
+      document.getElementById('dash-pago-pagado').innerText = estatusPagos["PAGADO"];
+      document.getElementById('dash-pago-anticipo').innerText = estatusPagos["ANTICIPO / ABONO"];
+      document.getElementById('dash-pago-credito').innerText = estatusPagos["CRÉDITO"];
+
+      var rankingPRV = Object.keys(contadorPRV).map(function(k) {
+        var infoProv = obtenerInfoProveedor(k);
+        return { prv: k, nombreReal: infoProv.nombre, cant: contadorPRV[k] };
+      }).sort(function(a, b) { return b.cant - a.cant; }).slice(0, 4);
+
+      var listaPRVCont = document.getElementById('dash-top-prv-lista');
+      if (rankingPRV.length === 0) {
+        listaPRVCont.innerHTML = '<p class="text-slate-400 italic text-[11px]">No hay repuestos registrados</p>';
+      } else {
+        var prvHtml = "";
+        rankingPRV.forEach(function(r) {
+          prvHtml += 
+            '<div class="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200">' +
+              '<div class="flex items-center gap-1.5 truncate pr-2">' +
+                '<span class="font-extrabold text-xs text-slate-900 truncate">' + comprasHtml(r.nombreReal) + '</span>' +
+                '<span class="font-mono font-bold text-[10px] bg-white text-slate-600 px-1.5 py-0.2 rounded border border-slate-300 shadow-2xs">' + comprasHtml(r.prv) + '</span>' +
+              '</div>' +
+              '<span class="font-mono font-black text-slate-900 text-xs shrink-0">' + r.cant + ' unid.</span>' +
+            '</div>';
+        });
+        listaPRVCont.innerHTML = prvHtml;
+      }
+
+      aplicarFiltros();
+      renderizarTablaHistorico();
+    }
+
+    // ==========================================
+    // CAMBIO DE VISTAS (DASHBOARD vs PEDIDOS vs HISTÓRICO vs PROVEEDORES)
+    // ==========================================
+    function cambiarVistaCompras(vista) {
+      var panDash = document.getElementById('vista-dashboard');
+      var panPed = document.getElementById('vista-pedidos');
+      var panHist = document.getElementById('vista-historico');
+      var panProv = document.getElementById('vista-proveedores');
+      var btnDash = document.getElementById('nav-btn-dashboard');
+      var btnPed = document.getElementById('nav-btn-pedidos');
+      var btnHist = document.getElementById('nav-btn-historico');
+      var btnProv = document.getElementById('nav-btn-proveedores');
+
+      panDash.classList.add('hidden');
+      panPed.classList.add('hidden');
+      panHist.classList.add('hidden');
+      if (panProv) panProv.classList.add('hidden');
+
+      btnDash.className = "px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5";
+      btnPed.className = "px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5";
+      btnHist.className = "px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5";
+      if (btnProv) btnProv.className = "px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5";
+
+      if (vista === 'dashboard') {
+        panDash.classList.remove('hidden');
+        btnDash.className = "px-3 py-1.5 rounded-lg transition-all bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm flex items-center gap-1.5";
+      } else if (vista === 'pedidos') {
+        panPed.classList.remove('hidden');
+        btnPed.className = "px-3 py-1.5 rounded-lg transition-all bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm flex items-center gap-1.5";
+        aplicarFiltros();
+      } else if (vista === 'historico') {
+        panHist.classList.remove('hidden');
+        btnHist.className = "px-3 py-1.5 rounded-lg transition-all bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm flex items-center gap-1.5";
+        comprasCargarHistorico(comprasHistoricoCargado ? comprasHistoricoPagina : 1);
+      } else if (vista === 'proveedores') {
+        if (panProv) panProv.classList.remove('hidden');
+        if (btnProv) btnProv.className = "px-3 py-1.5 rounded-lg transition-all bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm flex items-center gap-1.5";
+        renderizarDirectorioProveedores();
+      }
+    }
+
+    function normalizarClaveEstado(st) {
+      var s = String(st || "PENDIENTE").trim().toUpperCase();
+      if (s === "PENDIENTE") return "PENDIENTE";
+      if (s === "ORDEN_COMPRA" || s.indexOf("ORDEN") !== -1 || s.indexOf("COTIZACION") !== -1) return "ORDEN_COMPRA";
+      if (s === "EN_TRANSITO" || s === "APROBADO" || s.indexOf("TRANSITO") !== -1) return "EN_TRANSITO";
+      if (s === "RECIBIDO" || s.indexOf("RECIBIDO") !== -1 || s.indexOf("ALMACEN") !== -1) return "RECIBIDO";
+      if (s === "RECHAZADO_DEVOLUCION" || s.indexOf("RECHAZADO") !== -1 || s.indexOf("DEVOLUCION") !== -1) return "RECHAZADO_DEVOLUCION";
+      return "PENDIENTE";
+    }
+
+    function aplicarFiltros() {
+      var q = (document.getElementById('filtro-busqueda').value || "").toLowerCase().trim();
+      var fUrgencia = document.getElementById('filtro-urgencia').value;
+      var fSucursal = document.getElementById('filtro-sucursal').value;
+      var fPago = document.getElementById('filtro-pago').value;
+
+      var filtrados = ticketsAgrupados.filter(function(t) {
+        if (fUrgencia !== "TODAS" && t.urgencia !== fUrgencia) return false;
+        if (fSucursal !== "TODAS" && t.sucursal_origen.toUpperCase() !== fSucursal.toUpperCase()) return false;
+        if (fPago !== "TODOS" && t.estatus_pago !== fPago) return false;
+
+        if (q) {
+          var enTicket = (
+            t.ticket + " " +
+            t.responsable + " " +
+            t.cliente + " " +
+            t.motivo + " " +
+            t.sucursal_origen + " " +
+            t.sucursal_entrega + " " +
+            t.estatus_pago
+          ).toLowerCase();
+
+          var enItems = t.items.some(function(it) {
+            return (it.item + " " + (it.marca || '') + " " + (it.prv || '') + " " + (it.descripcion || '')).toLowerCase().indexOf(q) !== -1;
+          });
+
+          if (enTicket.indexOf(q) === -1 && !enItems) return false;
+        }
+
+        return true;
+      });
+
+      renderizarTableroKanban(filtrados);
+    }
+
+    // ==========================================
+    // RENDERIZADO DEL TABLERO KANBAN (5 ETAPAS)
+    // ==========================================
+    function renderizarTableroKanban(tickets) {
+      var etapas = ["PENDIENTE", "ORDEN_COMPRA", "EN_TRANSITO", "RECIBIDO", "RECHAZADO_DEVOLUCION"];
+      
+      var columnasData = {
+        "PENDIENTE": { items: [], piezas: 0 },
+        "ORDEN_COMPRA": { items: [], piezas: 0 },
+        "EN_TRANSITO": { items: [], piezas: 0 },
+        "RECIBIDO": { items: [], piezas: 0 },
+        "RECHAZADO_DEVOLUCION": { items: [], piezas: 0 }
+      };
+
+      tickets.forEach(function(t) {
+        var etapaKey = normalizarClaveEstado(t.estado);
+        var cantTicket = t.items.reduce(function(acc, cur) { return acc + (parseInt(cur.cant, 10) || 1); }, 0);
+        columnasData[etapaKey].items.push(t);
+        columnasData[etapaKey].piezas += cantTicket;
+      });
+
+      etapas.forEach(function(etapaKey) {
+        var dropzone = document.getElementById('dropzone-' + etapaKey);
+        var lblCnt = document.getElementById('cnt-col-' + etapaKey);
+        var lblPzas = document.getElementById('pzas-col-' + etapaKey);
+
+        var ticketsCol = columnasData[etapaKey].items;
+        var piezasCol = columnasData[etapaKey].piezas;
+
+        if (lblCnt) lblCnt.innerText = ticketsCol.length;
+        if (lblPzas) lblPzas.innerText = piezasCol.toLocaleString('es-VE');
+
+        if (!dropzone) return;
+
+        if (ticketsCol.length === 0) {
+          dropzone.innerHTML = 
+            '<div class="flex-1 flex flex-col items-center justify-center p-4 border border-dashed border-slate-300 rounded-xl text-center text-slate-400 min-h-[140px]">' +
+              '<i class="fa-regular fa-folder-open text-2xl mb-1 text-slate-300"></i>' +
+              '<span class="text-[11px] font-bold">Sin pedidos en esta etapa</span>' +
+              '<span class="text-[9.5px] text-slate-400 mt-0.5">Arrastra una tarjeta aquí</span>' +
+            '</div>';
+          return;
+        }
+
+        var colHtml = "";
+
+        ticketsCol.forEach(function(t) {
+          var totalPzas = t.items.reduce(function(acc, cur) { return acc + (parseInt(cur.cant, 10) || 1); }, 0);
+
+          var badgeUrgencia = "";
+          if (t.urgencia === "Urgente") {
+            badgeUrgencia = '<span class="text-[9px] bg-rose-50 text-rose-700 border border-rose-200 font-black px-1.5 py-0.5 rounded flex items-center gap-1 shadow-2xs"><i class="fa-solid fa-fire text-rose-500 text-[9px]"></i> Mostrador</span>';
+          } else if (t.urgencia === "Media") {
+            badgeUrgencia = '<span class="text-[9px] bg-amber-50 text-amber-700 border border-amber-200 font-extrabold px-1.5 py-0.5 rounded flex items-center gap-1"><i class="fa-solid fa-clock text-amber-500 text-[9px]"></i> Media</span>';
+          } else {
+            badgeUrgencia = '<span class="text-[9px] bg-slate-100 text-slate-600 border border-slate-200 font-bold px-1.5 py-0.5 rounded">Normal</span>';
+          }
+
+          var badgePago = "";
+          if (t.estatus_pago === "PAGADO") {
+            badgePago = '<span class="text-[8.5px] font-black bg-emerald-50 text-emerald-700 border border-emerald-300 px-1 py-0.2 rounded">PAGADO</span>';
+          } else if (t.estatus_pago === "ANTICIPO / ABONO") {
+            badgePago = '<span class="text-[8.5px] font-black bg-sky-50 text-sky-800 border border-sky-300 px-1 py-0.2 rounded">ANTICIPO</span>';
+          } else {
+            badgePago = '<span class="text-[8.5px] font-black bg-purple-50 text-purple-800 border border-purple-300 px-1 py-0.2 rounded">CRÉDITO</span>';
+          }
+
+          var itemsResumenHtml = "";
+          t.items.forEach(function(it) {
+            var infoProv = obtenerInfoProveedor(it.prv);
+            var nombreProvMostrado = infoProv.nombre !== it.prv ? infoProv.nombre : (it.prv || 'PRV');
+
+            // Determinar tiempo de entrega según la sede de entrega
+            var tiempoEstimado = infoProv.tiempo_el_tigre;
+            var entregaNorm = (t.sucursal_entrega || "").toUpperCase();
+            if (entregaNorm.indexOf("MARACAY") !== -1) tiempoEstimado = infoProv.tiempo_maracay;
+            else if (entregaNorm.indexOf("BARQUISIMETO") !== -1) tiempoEstimado = infoProv.tiempo_barquisimeto;
+
+            itemsResumenHtml += 
+              '<div class="text-xs py-1.5 border-b border-slate-100 last:border-b-0 space-y-0.5">' +
+                '<div class="flex items-center justify-between">' +
+                  '<span class="font-extrabold text-slate-900 truncate text-[11px] pr-2">' + comprasHtml(it.item) + '</span>' +
+                  '<span class="font-mono font-black text-slate-900 text-[11px] shrink-0 bg-slate-50 border border-slate-200 px-1.5 py-0.2 rounded">' + it.cant + ' unid.</span>' +
+                '</div>' +
+                '<div class="flex items-center justify-between text-[10px] text-slate-500">' +
+                  '<div class="flex items-center gap-1 truncate">' +
+                    '<i class="fa-solid fa-truck-ramp-box text-emerald-600 text-[9px]"></i>' +
+                    '<span class="font-bold text-emerald-900 truncate" title="' + comprasHtml(it.prv) + '">' + comprasHtml(nombreProvMostrado) + '</span>' +
+                  '</div>' +
+                  '<span class="text-[9.5px] font-mono text-slate-500 font-medium shrink-0 ml-1"><i class="fa-regular fa-clock text-[9px]"></i> ' + comprasHtml(tiempoEstimado) + '</span>' +
+                '</div>' +
+              comprasSelectorProveedor(it,t.ticket) +
+              '</div>';
+          });
+
+          var numNotasTicket = comentariosComprasGlobales.filter(function(c) { return c.ticket === t.ticket; }).length;
+
+          var botonAccionSuperior = "";
+          if (etapaKey === "PENDIENTE" && !comprasTicketOcupado(t.ticket)) {
+            botonAccionSuperior = 
+              '<button type="button" onclick="aceptarPedidoPendienteDirecto(event, \'' + comprasArgumento(t.ticket) + '\')" title="Aceptar requerimiento y pasar a Emitiendo Orden de Compra" class="w-7 h-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white flex items-center justify-center text-xs shadow-sm border border-emerald-500 transition-all cursor-pointer">' +
+                '<i class="fa-solid fa-check text-sm font-black"></i>' +
+              '</button>';
+          }
+
+          var botonDespachadoHtml = "";
+          if (etapaKey === "RECIBIDO" && !comprasTicketOcupado(t.ticket)) {
+            botonDespachadoHtml = 
+              '<button type="button" onclick="despacharPedidoAHistorico(event, \'' + comprasArgumento(t.ticket) + '\')" class="w-full mt-2 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-[10.5px] rounded-lg shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95">' +
+                '<i class="fa-solid fa-circle-check text-xs"></i>' +
+                '<span>Despachado / Conforme</span>' +
+              '</button>';
+          }
+
+          colHtml += 
+            '<div draggable="' + (!comprasTicketOcupado(t.ticket)) + '" ondragstart="iniciarArrastre(event, \'' + comprasArgumento(t.ticket) + '\')" ondragend="finalizarArrastre(event)" class="kanban-card bg-white p-3 rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-md transition-all">' +
+              
+              '<div class="flex items-start justify-between gap-1 mb-2">' +
+                '<div class="flex items-center gap-1.5 flex-wrap">' +
+                  '<span class="text-[11px] font-black font-mono text-slate-900 bg-slate-50 border border-slate-300 px-1.5 py-0.5 rounded shadow-2xs">' + comprasHtml(t.ticket) + '</span>' +
+                  badgeUrgencia +
+                  badgePago +
+                '</div>' +
+                '<div class="flex items-center gap-1 shrink-0">' +
+                  botonAccionSuperior +
+                  '<button type="button" onclick="abrirModalComentariosCompras(\'' + comprasArgumento(t.ticket) + '\')" class="w-7 h-7 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-300 flex items-center justify-center text-xs shadow-2xs transition-all relative" title="Notas del requerimiento">' +
+                    '<i class="fa-solid fa-comments"></i>' +
+                    (numNotasTicket > 0 ? ('<span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-sky-600 text-white text-[8px] font-black rounded-full flex items-center justify-center">' + numNotasTicket + '</span>') : '') +
+                  '</button>' +
+                  '<button type="button" onclick="abrirResumenProveedor(\'' + comprasArgumento(t.ticket) + '\')" class="w-7 h-7 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-300 flex items-center justify-center text-xs shadow-2xs transition-all" title="Generar formato para proveedor">' +
+                    '<i class="fa-brands fa-whatsapp text-emerald-600"></i>' +
+                  '</button>' +
+                '</div>' +
+              '</div>' +
+
+              (comprasTicketOcupado(t.ticket) ? '<p class="text-[9px] text-amber-700 mb-2">Cambio en curso o pendiente de confirmar</p>' : '') +
+              '<div class="space-y-1 mb-2 bg-slate-50/70 p-2 rounded-lg border border-slate-100 text-[10.5px] leading-tight">' +
+                '<div class="flex justify-between items-center text-slate-600">' +
+                  '<span class="font-bold text-slate-500 uppercase text-[9px]">Origen:</span>' +
+                  '<span class="font-black text-slate-900 truncate">' + comprasHtml(t.sucursal_origen) + ' (' + comprasHtml(t.responsable) + ')</span>' +
+                '</div>' +
+                '<div class="flex justify-between items-center text-slate-600">' +
+                  '<span class="font-bold text-slate-500 uppercase text-[9px]">Entrega:</span>' +
+                  '<span class="font-black text-emerald-800 truncate">' + comprasHtml(t.sucursal_entrega) + '</span>' +
+                '</div>' +
+                '<div class="flex justify-between items-center text-slate-600">' +
+                  '<span class="font-bold text-slate-500 uppercase text-[9px]">Cliente:</span>' +
+                  '<span class="font-black text-slate-900 truncate max-w-[170px]">' + comprasHtml(t.cliente) + '</span>' +
+                '</div>' +
+                (t.motivo ? ('<div class="pt-1 mt-1 border-t border-slate-200/60 text-[10px] text-slate-500 italic truncate" title="' + comprasHtml(t.motivo) + '">' + comprasHtml(t.motivo) + '</div>') : '') +
+              '</div>' +
+
+              '<div class="space-y-0.5 mb-2.5 bg-white rounded-lg p-1">' +
+                itemsResumenHtml +
+              '</div>' +
+
+              '<div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">' +
+                '<span class="font-bold text-slate-400 font-mono"><i class="fa-solid fa-boxes-stacked mr-1"></i>' + totalPzas + ' piezas</span>' +
+                '<select ' + (comprasTicketOcupado(t.ticket) ? 'disabled ' : '') + 'onchange="cambiarEstadoTicketEnBD(\'' + comprasArgumento(t.ticket) + '\', this.value)" class="text-[9.5px] font-bold bg-slate-50 border border-slate-300 rounded px-1.5 py-0.5 text-slate-700 focus:outline-none focus:border-emerald-600 cursor-pointer">' +
+                  '<option value="PENDIENTE"' + (etapaKey==='PENDIENTE'?' selected':'') + '>⏳ Pendiente</option>' +
+                  '<option value="ORDEN_COMPRA"' + (etapaKey==='ORDEN_COMPRA'?' selected':'') + '>📝 Emitiendo O.C.</option>' +
+                  '<option value="EN_TRANSITO"' + (etapaKey==='EN_TRANSITO'?' selected':'') + '>🚚 En Tránsito</option>' +
+                  '<option value="RECIBIDO"' + (etapaKey==='RECIBIDO'?' selected':'') + '>🏢 Recibido</option>' +
+                  '<option value="RECHAZADO_DEVOLUCION"' + (etapaKey==='RECHAZADO_DEVOLUCION'?' selected':'') + '>❌ Rechazado</option>' +
+                '</select>' +
+              '</div>' +
+
+              '<button type="button" onclick="comprasVerActividad(\'' + comprasArgumento(t.ticket) + '\')" class="text-[9px] text-slate-500 underline mt-2">Ver actividad</button>' +
+              botonDespachadoHtml +
+
+            '</div>';
+        });
+
+        dropzone.innerHTML = colHtml;
+      });
+    }
+
+    // ==========================================
+    // RENDERIZADO DEL HISTÓRICO COMPLETO
+    // ==========================================
+    function renderizarTablaHistorico() {
+      var tbody = document.getElementById('tbody-historico');
+      if (!tbody) return;
+      if(!comprasHistoricoCargado){tbody.innerHTML='<tr><td colspan="7" class="p-8 text-center text-slate-400">El histórico se carga al abrir esta sección.</td></tr>';return;}
+
+      var q = (document.getElementById('filtro-historico') ? document.getElementById('filtro-historico').value : "").toLowerCase().trim();
+
+      var filtrados = ticketsHistoricoAgrupados;
+
+      if (filtrados.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-400 font-bold">No hay registros en el histórico</td></tr>';
+        return;
+      }
+
+      var html = "";
+      filtrados.forEach(function(t) {
+        var totalPzas = t.items.reduce(function(acc, cur) { return acc + (parseInt(cur.cant, 10) || 1); }, 0);
+        var detallePzas = t.items.map(function(i) {
+          var infoP = obtenerInfoProveedor(i.prv);
+          return i.cant + "x " + i.item + " (" + infoP.nombre + ")";
+        }).join(", ");
+
+        html += 
+          '<tr class="hover:bg-slate-50/80 transition-colors">' +
+            '<td class="p-3 font-mono font-black text-slate-900">' + comprasHtml(t.ticket) + '</td>' +
+            '<td class="p-3 text-slate-500 font-mono text-[11px]">' + comprasHtml(t.fecha) + '<br><span class="text-[9px] text-emerald-700">Despacho: ' + comprasHtml(t.fecha_despacho || 'Sin fecha registrada') + '</span></td>' +
+            '<td class="p-3"><span class="font-bold text-slate-800">' + comprasHtml(t.sucursal_origen) + '</span> <span class="text-slate-400">(' + comprasHtml(t.responsable) + ')</span></td>' +
+            '<td class="p-3"><span class="font-bold text-emerald-800">' + comprasHtml(t.sucursal_entrega) + '</span> <div class="text-[10px] text-slate-500 truncate max-w-[150px]">' + comprasHtml(t.cliente) + '</div></td>' +
+            '<td class="p-3"><span class="text-[9px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded">' + comprasHtml(t.estatus_pago) + '</span></td>' +
+            '<td class="p-3"><span class="font-mono font-black text-slate-900">' + totalPzas + ' pzas</span> <div class="text-[10px] text-slate-500 truncate max-w-[280px]" title="' + comprasHtml(detallePzas) + '">' + comprasHtml(detallePzas) + '</div></td>' +
+            '<td class="p-3 text-right"><span class="text-[9.5px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-lg inline-flex items-center gap-1"><i class="fa-solid fa-check text-[9px]"></i> Conforme</span></td>' +
+          '</tr>';
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    // ==========================================
+    // LÓGICA DRAG AND DROP DEL KANBAN
+    // ==========================================
+    let ticketArrastradoId = null;
+
+    function iniciarArrastre(e, ticketId) {
+      if(comprasTicketOcupado(ticketId)){e.preventDefault();return;}
+      ticketArrastradoId = ticketId;
+      e.dataTransfer.setData("text/plain", ticketId);
+      e.dataTransfer.effectAllowed = "move";
+      if (e.target && e.target.classList) {
+        e.target.classList.add('is-dragging');
+      }
+    }
+
+    function finalizarArrastre(e) {
+      if (e.target && e.target.classList) {
+        e.target.classList.remove('is-dragging');
+      }
+      document.querySelectorAll('.kanban-dropzone').forEach(function(dz) {
+        dz.classList.remove('dragover');
+      });
+      ticketArrastradoId = null;
+    }
+
+    function permitirSoltar(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      var dz = e.currentTarget;
+      if (dz && !dz.classList.contains('dragover')) {
+        dz.classList.add('dragover');
+      }
+    }
+
+    function quitarDragover(e) {
+      var dz = e.currentTarget;
+      if (dz) dz.classList.remove('dragover');
+    }
+
+    function soltarEnEtapa(e, nuevaEtapa) {
+      e.preventDefault();
+      var dz = e.currentTarget;
+      if (dz) dz.classList.remove('dragover');
+
+      var ticketId = e.dataTransfer.getData("text/plain") || ticketArrastradoId;
+      if (!ticketId) return;
+
+      var t = ticketsAgrupados.find(function(x) { return x.ticket === ticketId; });
+      if (!t) return;
+
+      var etapaActual = normalizarClaveEstado(t.estado);
+      if (etapaActual === nuevaEtapa) return;
+
+      cambiarEstadoTicketEnBD(ticketId, nuevaEtapa);
+    }
+
+    function aceptarPedidoPendienteDirecto(e, ticketId) {
+      if (e) e.stopPropagation();
+      cambiarEstadoTicketEnBD(ticketId, 'ORDEN_COMPRA');
+    }
+
+    function abrirResumenProveedor(ticket) {
+      var t = ticketsAgrupados.find(function(x) { return x.ticket === ticket; });
+      if (!t) return;
+
+      var texto = "⚙️ *SOLICITUD DE COTIZACIÓN · RODAINDUSTRIA MARACAY*\n";
+      texto += "📄 Requerimiento: *" + t.ticket + "*\n";
+      texto += "🏢 Sucursal Entrega: *" + t.sucursal_entrega + "*\n";
+      texto += "👤 Solicitado por: *" + t.responsable + "* (" + t.sucursal_origen + ")\n";
+      texto += "----------------------------------------\n";
+      
+      t.items.forEach(function(it, i) {
+        var infoProv = obtenerInfoProveedor(it.prv);
+        var nombreRealProv = infoProv.nombre || it.prv || 'PROVEEDOR';
+        texto += (i + 1) + ". *" + it.item + "* (" + (it.marca || 'GEN') + " | Prov: " + nombreRealProv + ")\n";
+        texto += "   • Cantidad requerida: *" + it.cant + " unid.*\n\n";
+      });
+
+      texto += "----------------------------------------\n";
+      texto += "Por favor confirmar disponibilidad inmediata y mejores precios de distribuidor. ¡Gracias!";
+
+      document.getElementById('texto-proveedor').value = texto;
+      document.getElementById('modal-proveedor').classList.remove('hidden');
+    }
+
+    function cerrarModalProveedor() {
+      document.getElementById('modal-proveedor').classList.add('hidden');
+    }
+
+    function copiarTextoProveedor() {
+      var texto = document.getElementById('texto-proveedor').value;
+      copyTextDirect(texto, "¡Formato para proveedor copiado!");
+      cerrarModalProveedor();
+    }
+
+    function copyTextDirect(text, message) {
+      var temp = document.createElement("textarea");
+      temp.value = text;
+      document.body.appendChild(temp);
+      temp.select();
+      try {
+        document.execCommand('copy');
+        mostrarToast(message);
+      } catch (err) {
+        mostrarToast("No se pudo copiar automáticamente");
+      }
+      document.body.removeChild(temp);
+    }
+
+    function mostrarToast(msg) {
+      var t = document.getElementById('toast');
+      var txt = document.getElementById('toast-text');
+      if (txt) txt.innerText = msg;
+      if (t) {
+        t.classList.remove('opacity-0', 'pointer-events-none');
+        setTimeout(function() {
+          t.classList.add('opacity-0', 'pointer-events-none');
+        }, 2500);
+      }
+    }
+
+    // COMPRAS: operaciones recuperables y cargas independientes.
+    let comprasResumenHistorico = {tickets:0,piezas:0};
+    let comprasHistoricoPagina=1, comprasHistoricoPaginas=1, comprasHistoricoTotal=0, comprasHistoricoCargado=false;
+    let comprasHistoricoOcupado=false, comprasHistoricoTimer=null, comprasHistoricoVersion=0;
+    let comprasComentariosCursor=1, comprasComentariosOcupado=false, comprasProveedoresOcupado=false;
+    let comprasOperando={}, comprasPendientesServidor=[], comprasRevisionCargas=0, comprasRecargaPendiente=false;
+
+    function comprasPrivado(nombre,args){
+      return new Promise(function(resolve,reject){
+        comprasRunner().withSuccessHandler(function(r){if(!r||r.exito===false)reject(new Error(r&&r.error||'El servidor no confirmó la operación.'));else resolve(r);}).withFailureHandler(function(e){reject(new Error(comprasError(e)));})[nombre].apply(null,args||[]);
+      });
+    }
+    function comprasNuevoId(){return crypto.randomUUID().replace(/-/g,'')+crypto.randomUUID().replace(/-/g,'');}
+    function comprasEstadoCarga(mensaje,error){
+      var el=document.getElementById('compras-estado-carga');el.textContent=mensaje;el.classList.toggle('text-rose-700',!!error);el.classList.toggle('text-slate-500',!error);
+    }
+    function comprasClavePendientes(){return 'compras_operaciones_locales:'+(comprasUsuario?comprasUsuario.email:'sin-sesion');}
+    function comprasPendientesLocales(){try{return JSON.parse(sessionStorage.getItem(comprasClavePendientes())||'[]');}catch(e){return [];}}
+    function comprasGuardarPendienteLocal(p){var lista=comprasPendientesLocales().filter(function(x){return x.id!==p.id;});lista.push(p);sessionStorage.setItem(comprasClavePendientes(),JSON.stringify(lista));comprasMostrarPendientes();}
+    function comprasQuitarPendiente(id){try{sessionStorage.setItem(comprasClavePendientes(),JSON.stringify(comprasPendientesLocales().filter(function(x){return x.id!==id;})));}catch(e){}comprasPendientesServidor=comprasPendientesServidor.filter(function(x){return x.id!==id;});comprasMostrarPendientes();}
+    function comprasMostrarPendientes(){
+      var cont=document.getElementById('compras-operaciones-pendientes');cont.replaceChildren();if(!sesionAutenticada)return;
+      var mapa={};comprasPendientesServidor.concat(comprasPendientesLocales()).forEach(function(p){mapa[p.id]=p;});
+      Object.values(mapa).forEach(function(p){var fila=document.createElement('div');fila.className='flex flex-wrap items-center gap-2 text-xs p-2 rounded-lg bg-amber-50 border border-amber-200';var t=document.createElement('span');t.textContent=p.ticket+' · '+({ARCHIVAR:'Archivo',CAMBIO_ESTADO:'Cambio de estado',ASIGNAR_PROVEEDOR:'Cambio de proveedor'}[p.tipo]||'Operación')+' pendiente de confirmar';fila.appendChild(t);var b=document.createElement('button');b.type='button';b.className='font-bold underline';b.textContent='Reintentar';b.disabled=!!comprasOperando[p.ticket];b.onclick=function(){comprasReintentarOperacion(p.id);};fila.appendChild(b);cont.appendChild(fila);});
+    }
+    function comprasTicketOcupado(ticket){var t=ticketsAgrupados.find(function(x){return x.ticket===ticket;});return !!comprasOperando[ticket]||comprasPendientesLocales().some(function(p){return p.ticket===ticket;})||comprasPendientesServidor.some(function(p){return p.ticket===ticket;})||!!(t&&t.items.some(function(it){return it.operacion_pendiente;}));}
+    async function comprasDespacharSolicitud(p){
+      if(comprasOperando[p.ticket]||!sesionAutenticada)return;
+      var epoch=comprasEpoch;comprasRevisionCargas++;comprasOperando[p.ticket]=true;
+      try{comprasGuardarPendienteLocal(p);}catch(e){delete comprasOperando[p.ticket];mostrarToast('Habilita el almacenamiento de sesión para proteger el envío.');return;}
+      aplicarFiltros();comprasMostrarPendientes();
+      try{
+        var r=await comprasPrivado(p.endpoint,p.args.concat([p.id]));
+        comprasRevisionCargas++;comprasQuitarPendiente(p.id);mostrarToast(p.tipo==='ARCHIVAR'?'Ticket '+p.ticket+' archivado sin duplicar productos.':p.tipo==='ASIGNAR_PROVEEDOR'?'Proveedor real actualizado.':'Estado actualizado.');
+        if(p.tipo==='ARCHIVAR'){comprasHistoricoCargado=false;if(!document.getElementById('vista-historico').classList.contains('hidden'))await comprasCargarHistorico(1);}
+        await cargarSolicitudes(true,true);return r;
+      }catch(e){
+        if(epoch!==comprasEpoch)return;
+        // Un error de validación sin operación persistida no debe dejar el ticket bloqueado.
+        try{var estado=await comprasPrivado('consultarOperacionCompras',[p.id]);if(!estado.encontrada)comprasQuitarPendiente(p.id);}catch(ignorado){}
+        comprasEstadoCarga('No se confirmó el cambio. Se conservan los datos y los envíos pendientes pueden reintentarse.',true);mostrarToast(comprasError(e));
+      }finally{if(epoch===comprasEpoch){delete comprasOperando[p.ticket];aplicarFiltros();comprasMostrarPendientes();}}
+    }
+    async function comprasReintentarOperacion(id){
+      var local=comprasPendientesLocales().find(function(x){return x.id===id;});if(local)return comprasDespacharSolicitud(local);
+      var p=comprasPendientesServidor.find(function(x){return x.id===id;});if(!p||comprasOperando[p.ticket])return;
+      var epoch=comprasEpoch;comprasRevisionCargas++;comprasOperando[p.ticket]=true;comprasMostrarPendientes();aplicarFiltros();
+      try{await comprasPrivado('reintentarOperacionCompras',[id]);comprasRevisionCargas++;comprasQuitarPendiente(id);comprasHistoricoCargado=false;await cargarSolicitudes(true,true);mostrarToast('Operación recuperada y confirmada.');}
+      catch(e){if(epoch===comprasEpoch)mostrarToast(comprasError(e));}finally{if(epoch===comprasEpoch){delete comprasOperando[p.ticket];comprasMostrarPendientes();aplicarFiltros();}}
+    }
+    async function cargarSolicitudes(esSilencioso,forzar){
+      if(!sesionAutenticada||!comprasToken)return;
+      if(sincronizacionEnCurso){if(forzar)comprasRecargaPendiente=true;return;}
+      sincronizacionEnCurso=true;var epoch=comprasEpoch,revision=comprasRevisionCargas;var icon=document.getElementById('btn-refresh-icon');if(icon&&!esSilencioso)icon.classList.add('fa-spin');
+      if(!esSilencioso)comprasEstadoCarga('Actualizando pedidos…',false);
+      try{
+        var r=await comprasPrivado('obtenerSolicitudesCompras',[]);if(revision!==comprasRevisionCargas){comprasRecargaPendiente=true;return;}if(!Array.isArray(r.activas))throw new Error('Respuesta de pedidos inválida.');
+        solicitudesCrudas=r.activas;comprasResumenHistorico={tickets:Number(r.totalHistoricoTickets)||0,piezas:Number(r.totalHistoricoPiezas)||0};comprasPendientesServidor=r.operacionesPendientes||[];
+        procesarYAgrupar(esSilencioso);comprasMostrarPendientes();cargarComentariosCompras();
+        comprasEstadoCarga('Pedidos actualizados '+new Date().toLocaleTimeString('es-VE',{timeZone:'America/Caracas',hour:'2-digit',minute:'2-digit'})+(solicitudesCrudas.length?'':' · No hay pedidos activos'),false);
+      }catch(e){if(epoch===comprasEpoch){comprasEstadoCarga('Actualización pendiente. Se conserva la última información válida. Pulsa Reintentar.',true);if(!esSilencioso)mostrarToast(comprasError(e));}}
+      finally{if(epoch===comprasEpoch){sincronizacionEnCurso=false;if(icon)icon.classList.remove('fa-spin');if(comprasRecargaPendiente){comprasRecargaPendiente=false;setTimeout(function(){cargarSolicitudes(true);},0);}}}
+    }
+    async function cargarComentariosCompras(){
+      if(!sesionAutenticada||comprasComentariosOcupado)return;comprasComentariosOcupado=true;var epoch=comprasEpoch;
+      try{var r=await comprasPrivado('obtenerComentariosCompras',[comprasComentariosCursor]);
+        if(r.reiniciar)comentariosComprasGlobales=[];
+        var mapa={};comentariosComprasGlobales.concat(r.comentarios||[]).forEach(function(c){mapa[c.id]=c;});
+        comprasComentariosCursor=r.cursor;procesarComentariosCompras(Object.values(mapa));document.getElementById('compras-estado-comentarios').textContent='';
+      }catch(e){if(epoch===comprasEpoch)document.getElementById('compras-estado-comentarios').textContent='Comentarios pendientes de actualizar; se conserva el hilo.';}
+      finally{if(epoch===comprasEpoch)comprasComentariosOcupado=false;}
+    }
+    async function cargarProveedores(esSilencioso){
+      if(!sesionAutenticada||comprasProveedoresOcupado)return;comprasProveedoresOcupado=true;var epoch=comprasEpoch;
+      try{var r=await comprasPrivado('obtenerProveedores',[]);if(!Array.isArray(r.proveedores))throw new Error('Respuesta de proveedores inválida.');procesarDatosProveedores(r.proveedores);if(ticketsAgrupados.length)aplicarFiltros();}
+      catch(e){if(epoch===comprasEpoch){comprasEstadoCarga('No se actualizó el directorio de proveedores. Se conserva la última versión válida.',true);if(!esSilencioso)mostrarToast(comprasError(e));}}
+      finally{if(epoch===comprasEpoch)comprasProveedoresOcupado=false;}
+    }
+    function comprasSelectorProveedor(it,ticket){
+      var real=it.prv_real||it.prv||'PRV',origen=it.prv_solicitado||it.prv||'PRV';
+      var proveedores=directorioProveedores.slice().sort(function(a,b){return a.nombre.localeCompare(b.nombre);});
+      var opciones='';if(!proveedores.some(function(p){return p.codigo===real;}))opciones='<option value="'+comprasHtml(real)+'">'+comprasHtml(real)+' (sin ficha)</option>';
+      proveedores.forEach(function(p){opciones+='<option value="'+comprasHtml(p.codigo)+'"'+(p.codigo===real?' selected':'')+'>'+comprasHtml(p.codigo+' · '+p.nombre)+'</option>';});
+      return '<div class="mt-1.5 space-y-1"><p class="text-[9px] text-slate-400">Solicitado por Ventas: '+comprasHtml(origen)+'</p><label class="block text-[9px] font-bold text-slate-500">Proveedor real<select aria-label="Proveedor real de '+comprasHtml(it.item)+'" '+(comprasTicketOcupado(ticket)||!directorioProveedores.length?'disabled ':'')+'onchange="comprasSeleccionarProveedor(\''+comprasArgumento(ticket)+'\',\''+comprasArgumento(it.id_item)+'\',this.value)" class="block w-full mt-1 p-1.5 border border-slate-200 rounded-lg bg-white text-[10px] text-slate-800">'+opciones+'</select></label></div>';
+    }
+    function comprasSeleccionarProveedor(ticket,idItem,nuevo){
+      if(comprasTicketOcupado(ticket))return;var it=solicitudesCrudas.find(function(x){return x.ticket===ticket&&x.id_item===idItem;});if(!it||nuevo===(it.prv_real||it.prv))return;
+      return comprasDespacharSolicitud({id:comprasNuevoId(),tipo:'ASIGNAR_PROVEEDOR',ticket:ticket,endpoint:'cambiarProveedorSolicitud',args:[ticket,idItem,nuevo,it.prv_real||it.prv]});
+    }
+    function cambiarEstadoTicketEnBD(ticket,nuevoEstado){
+      if(comprasTicketOcupado(ticket))return;var t=ticketsAgrupados.find(function(x){return x.ticket===ticket;});if(!t)return;var anterior=normalizarClaveEstado(t.estado);if(anterior===nuevoEstado)return;
+      return comprasDespacharSolicitud({id:comprasNuevoId(),tipo:'CAMBIO_ESTADO',ticket:ticket,endpoint:'actualizarEstadoTicket',args:[ticket,nuevoEstado,anterior]});
+    }
+    function despacharPedidoAHistorico(e,ticket){
+      if(e)e.stopPropagation();if(comprasTicketOcupado(ticket))return;
+      if(!confirm('¿Confirmas que '+ticket+' fue despachado conforme? Se guardará en el histórico.'))return;
+      return comprasDespacharSolicitud({id:comprasNuevoId(),tipo:'ARCHIVAR',ticket:ticket,endpoint:'despacharYArchivarTicket',args:[ticket]});
+    }
+    function comprasBuscarHistorico(){clearTimeout(comprasHistoricoTimer);comprasHistoricoVersion++;comprasHistoricoTimer=setTimeout(function(){comprasCargarHistorico(1);},300);}
+    async function comprasCargarHistorico(pagina){
+      if(!sesionAutenticada)return;
+      if(comprasHistoricoOcupado){clearTimeout(comprasHistoricoTimer);comprasHistoricoTimer=setTimeout(function(){comprasCargarHistorico(pagina);},150);return;}
+      comprasHistoricoOcupado=true;var epoch=comprasEpoch,version=comprasHistoricoVersion;
+      var texto=document.getElementById('filtro-historico').value;document.getElementById('compras-estado-historico').textContent='Cargando histórico…';
+      try{
+        var r=await comprasPrivado('obtenerHistoricoCompras',[{pagina:pagina,texto:texto}]);
+        if(version!==comprasHistoricoVersion)return;
+        historicoCrudo=r.historico;comprasHistoricoPagina=r.pagina;comprasHistoricoPaginas=r.paginas;comprasHistoricoTotal=r.total;comprasHistoricoCargado=true;
+        comprasResumenHistorico={tickets:r.totalHistoricoTickets,piezas:r.totalHistoricoPiezas};procesarYAgrupar(true);
+        document.getElementById('compras-estado-historico').textContent='Página '+r.pagina+' de '+r.paginas+' · '+r.total+' tickets';
+        document.getElementById('compras-hist-anterior').disabled=r.pagina<=1;document.getElementById('compras-hist-siguiente').disabled=r.pagina>=r.paginas;
+      }catch(e){if(epoch===comprasEpoch){document.getElementById('compras-estado-historico').textContent='No se pudo actualizar el histórico. Se conserva la última página. Pulsa Actualizar.';mostrarToast(comprasError(e));}}
+      finally{if(epoch===comprasEpoch)comprasHistoricoOcupado=false;}
+    }
+    async function enviarComentarioDesdeCompras(){
+      var input=document.getElementById('input-compras-cmt'),mensaje=input.value.trim(),ticket=ticketComentariosComprasActivo,btn=document.getElementById('btn-enviar-cmt-compras');
+      if(!sesionAutenticada||!mensaje||!ticket||btn.disabled)return;var epoch=comprasEpoch;btn.disabled=true;
+      try{var r=await comprasPrivado('agregarComentarioTicket',[{ticket:ticket,mensaje:mensaje}]);
+        if(input.value.trim()===mensaje)input.value='';
+        if(!comentariosComprasGlobales.some(function(c){return c.id===r.comentario.id;}))comentariosComprasGlobales.push(r.comentario);
+        if(ticketComentariosComprasActivo===ticket)renderizarHiloComentariosCompras(ticket);mostrarToast('Comentario guardado como '+comprasUsuario.nombre+'.');
+      }catch(e){if(epoch===comprasEpoch)mostrarToast(comprasError(e));}finally{if(epoch===comprasEpoch)btn.disabled=false;}
+    }
+    function iniciarPollingTiempoReal(){
+      if(intervaloPolling)clearInterval(intervaloPolling);
+      intervaloPolling=setInterval(function(){if(!document.hidden&&sesionAutenticada&&!ticketArrastradoId&&!Object.keys(comprasOperando).length&&!document.activeElement.matches('select'))cargarSolicitudes(true);},30000);
+      document.addEventListener('visibilitychange',function(){if(!document.hidden&&sesionAutenticada)cargarSolicitudes(true);});
+    }
+    async function comprasVerActividad(ticket){
+      if(!sesionAutenticada)return;var modal=document.getElementById('compras-modal-actividad'),lista=document.getElementById('compras-lista-actividad');modal.classList.remove('hidden');lista.textContent='Cargando actividad…';
+      try{var r=await comprasPrivado('obtenerBitacoraCompras',[ticket]);lista.replaceChildren();if(!r.eventos.length)lista.textContent='Todavía no hay movimientos registrados para este ticket.';
+        r.eventos.forEach(function(ev){var p=document.createElement('p');p.className='p-2 border-b border-slate-100 text-xs';p.textContent=ev.fecha+' · '+ev.autor+' · '+ev.accion.replace(/_/g,' ')+': '+ev.anterior+' → '+ev.nuevo+(ev.id_item?' · '+ev.id_item:'');lista.appendChild(p);});
+      }catch(e){lista.textContent=comprasError(e);}
+    }
+
+    window.onload = function() {
+      verificarSesionPrevia();
+      iniciarPollingTiempoReal();
+
+      // Desbloquear audio con el primer toque o clic del usuario
+      document.addEventListener('click', desbloquearAudioNativo, { once: true });
+    };
+  </script>
+</body>
+</html>
