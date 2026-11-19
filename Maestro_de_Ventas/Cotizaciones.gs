@@ -212,6 +212,8 @@ function comprobarLogoCotizacion() {
 // También se incluye en Index para que ambos formatos usen las mismas reglas.
 function rimFechaEntrega_(plazo, hoy, destacarManana) {
   var original = String(plazo == null ? '' : plazo).replace(/\s+/g, ' ').trim() || 'Por confirmar';
+  var sinCalcular = original.replace(/^bajo importaci[oó]n\s*(?=\()/i, 'Entrega ')
+    .replace(/^bajo importaci[oó]n\.?$/i, 'Entrega por confirmar');
   var texto = original.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   var importacion = /\bimportacion\b/.test(texto);
   var local = /\b(local|nacional)\b/.test(texto);
@@ -223,20 +225,20 @@ function rimFechaEntrega_(plazo, hoy, destacarManana) {
     desde = Number(rango[1]);
     hasta = rango[2] == null ? desde : Number(rango[2]);
     habiles = /^(habil|laborable)/.test(rango[3] || '');
-    if (hasta < desde || hasta > 3650) return original;
+    if (hasta < desde || hasta > 3650) return sinCalcular;
   } else if (/^(hoy|inmediat[oa]|mismo dia)\.?$/.test(duracion)) {
     desde = hasta = 0;
   } else if (/^manana\.?$/.test(duracion)) {
     desde = hasta = 1;
   } else {
-    return original;
+    return sinCalcular;
   }
   // Los plazos de cinco días o más se cotizan como importación, salvo indicación local.
   importacion = importacion || (!local && desde >= 5);
   if (!importacion && hasta === 0) return 'Entrega inmediata';
   var tolerancia = importacion && desde >= 5 ? (hasta >= 30 ? 10 : 2) : 0;
   var base = new Date(hoy + 'T00:00:00Z');
-  if (!Number.isFinite(base.getTime())) return original;
+  if (!Number.isFinite(base.getTime())) return sinCalcular;
   var meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
   function fecha(offset) {
@@ -260,7 +262,7 @@ function rimFechaEntrega_(plazo, hoy, destacarManana) {
     if (!mismoAno) fechaInicio += ' ' + inicio.getUTCFullYear();
     ventana = fechaInicio + ' – ' + fechaFin;
   }
-  if (importacion) return 'Bajo importación (' + ventana + ')';
+  if (importacion) return 'Entrega (' + ventana + ')';
   if (destacarManana && desde === hasta && inicio.getTime() - base.getTime() === 86400000) {
     return 'Entrega Mañana (' + fechaFin + ')';
   }
