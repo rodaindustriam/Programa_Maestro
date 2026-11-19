@@ -1722,8 +1722,8 @@
         texto+=(i+1)+'. *'+codigo+'*'+(marca?' — Marca '+marca:'')+'\n';
         texto+='   • Precio unitario: $'+precio.toFixed(2)+' + IVA'+(mixto?' · '+tipo:'')+'\n';
         texto+='   • Cantidad: '+it.cant+' · Subtotal: *$'+sub.toFixed(2)+'*\n';
-        var plazo = rimFechaEntrega_(rimTiempoEntregaCotizacion(it), hoy);
-        texto+='   • Disponibilidad: '+plazo+'\n\n';
+        var plazo = rimFechaEntrega_(rimTiempoEntregaCotizacion(it), hoy, true);
+        texto+='   • '+plazo+'\n\n';
       });
       texto+='----------------------------------------\n';
       if(mixto){

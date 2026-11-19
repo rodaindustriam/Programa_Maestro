@@ -210,7 +210,7 @@ function comprobarLogoCotizacion() {
 }
 
 // También se incluye en Index para que ambos formatos usen las mismas reglas.
-function rimFechaEntrega_(plazo, hoy) {
+function rimFechaEntrega_(plazo, hoy, paraWhatsApp) {
   var original = String(plazo == null ? '' : plazo).replace(/\s+/g, ' ').trim() || 'Por confirmar';
   var texto = original.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   var importacion = /\bimportacion\b/.test(texto);
@@ -261,5 +261,8 @@ function rimFechaEntrega_(plazo, hoy) {
     ventana = fechaInicio + ' – ' + fechaFin;
   }
   if (importacion) return 'Bajo importación (' + ventana + ')';
+  if (paraWhatsApp && desde === hasta && inicio.getTime() - base.getTime() === 86400000) {
+    return 'Entrega Mañana (' + fechaFin + ')';
+  }
   return (desde === hasta ? 'Entrega estimada el ' : 'Entrega estimada entre ') + ventana;
 }
