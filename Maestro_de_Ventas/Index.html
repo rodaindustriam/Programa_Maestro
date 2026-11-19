@@ -201,6 +201,29 @@
       #drawer-cotizador, #drawer-pedidos { overflow-y: auto; }
       #items-cotizacion, #items-pedidos { flex: 0 0 auto; overflow: visible; }
     }
+    #rim-panel-ventas { width:min(960px,calc(100% - 24px)); max-height:calc(100% - 24px); padding:0; border:1px solid #d7e1ec; border-radius:24px; color:#10243a; background:#f1f5f9; box-shadow:0 24px 80px #07192a66; }
+    #rim-panel-ventas::backdrop { background:#071526b8; backdrop-filter:blur(4px); }
+    .rim-panel-cab { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; padding:clamp(1rem,4vw,2rem); background:radial-gradient(ellipse at 85% 0%,#1c5780,transparent 66%),#11263d; color:#fff; }
+    .rim-panel-cab small { text-transform:uppercase; letter-spacing:.15em; font-weight:800; color:#9bdcff; }
+    .rim-panel-cab h2 { font-size:clamp(1.5rem,4vw,2.2rem); font-weight:850; line-height:1.1; margin:.25rem 0 .4rem; }
+    .rim-panel-cab p { color:#c9e2f0; font-size:.85rem; }
+    .rim-panel-cerrar { border:1px solid #89adc583; border-radius:10px; padding:.35rem .6rem; color:white; }
+    .rim-panel-cuerpo { padding:clamp(.75rem,3vw,1.5rem); display:grid; gap:1rem; }
+    .rim-panel-resumen { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,118px),1fr)); gap:.65rem; }
+    .rim-panel-resumen div, .rim-panel-tarjeta { background:#fff; border:1px solid #dce5ee; border-radius:15px; padding:.85rem; }
+    .rim-panel-resumen dt { color:#405975; font-size:.73rem; font-weight:700; }
+    .rim-panel-resumen dd { font-size:1.65rem; font-weight:850; font-variant-numeric:tabular-nums; line-height:1.2; }
+    .rim-panel-columnas { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:.75rem; }
+    .rim-panel-tarjeta h3 { font-size:1rem; font-weight:800; }
+    .rim-panel-tarjeta p, .rim-panel-estado { color:#405975; font-size:.75rem; }
+    .rim-panel-tarjeta table { width:100%; margin-top:.65rem; font-size:.8rem; }
+    .rim-panel-tarjeta td, .rim-panel-tarjeta th { padding:.45rem .2rem; text-align:left; border-top:1px solid #e6edf4; }
+    .rim-panel-tarjeta th[scope="col"] { color:#405975; font-size:.68rem; }
+    .rim-panel-tarjeta .rim-panel-num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .rim-panel-perfil { display:flex; align-items:center; gap:.45rem; }
+    .rim-panel-punto { width:.5rem; height:.5rem; flex:none; border-radius:50%; background:#078453; box-shadow:0 0 0 3px #07845320; }
+    .rim-panel-pie { display:flex; align-items:center; justify-content:space-between; gap:.5rem; flex-wrap:wrap; }
+    @media (max-width:680px) { .rim-panel-columnas { grid-template-columns:minmax(0,1fr); } }
   </style>
 </head>
 <body class="text-slate-800 antialiased pb-28">
@@ -330,6 +353,7 @@
 
   <div class="max-w-6xl mx-auto px-4 pt-3 flex flex-wrap items-center gap-2 text-xs">
     <span id="rim-identidad" class="text-slate-600 flex-1" aria-live="polite">Catálogo público</span>
+    <button type="button" id="rim-btn-panel-ventas" hidden onclick="rimAbrirPanelVentas()" class="px-3 py-2 rounded-lg bg-sky-900 text-white font-bold"><i class="fa-solid fa-chart-simple mr-1" aria-hidden="true"></i> Panel de ventas</button>
     <button id="rim-btn-login" onclick="rimIniciarSesion()" class="px-3 py-2 rounded-lg bg-slate-800 text-white font-bold">Iniciar sesión con Google</button>
     <button id="rim-btn-cancelar-login" hidden onclick="rimCancelarLogin()" class="px-3 py-2 rounded-lg border border-slate-300">Cancelar acceso</button>
     <button id="rim-btn-salir" onclick="rimSalir()" hidden class="px-3 py-2 rounded-lg border border-slate-300 font-bold">Cerrar sesión</button>
@@ -337,6 +361,46 @@
   </div>
   <p id="rim-estado-borrador" aria-live="polite" class="max-w-6xl mx-auto px-4 pt-1 text-[10px] text-slate-500"></p>
   <div id="rim-pdf-listo" class="hidden max-w-6xl mx-auto px-4 py-3 text-xs bg-slate-100" role="status"><a id="rim-descarga-pdf" class="font-bold underline" target="_blank" rel="noopener">Descargar PDF</a></div>
+
+  <dialog id="rim-panel-ventas" aria-labelledby="rim-panel-titulo">
+    <header class="rim-panel-cab">
+      <div>
+        <small>Maestro de Ventas</small>
+        <h2 id="rim-panel-titulo">Panel de ventas</h2>
+        <p>Presencia del equipo y actividad comercial por vendedor.</p>
+      </div>
+      <form method="dialog"><button class="rim-panel-cerrar" aria-label="Cerrar panel" autofocus>✕</button></form>
+    </header>
+    <div class="rim-panel-cuerpo">
+      <dl class="rim-panel-resumen">
+        <div><dt>Perfiles en línea</dt><dd id="rim-panel-total-activos">—</dd></div>
+        <div><dt>Cotizaciones de ventas</dt><dd id="rim-panel-total-cotizaciones">—</dd></div>
+        <div><dt>Pedidos de ventas</dt><dd id="rim-panel-total-pedidos">—</dd></div>
+      </dl>
+      <div class="rim-panel-columnas">
+        <section class="rim-panel-tarjeta" aria-labelledby="rim-panel-presencia">
+          <h3 id="rim-panel-presencia">Equipo en línea</h3>
+          <p>Con actividad de conexión en los últimos 2 minutos.</p>
+          <table aria-labelledby="rim-panel-presencia">
+            <thead><tr><th scope="col">Perfil</th><th scope="col" class="rim-panel-num">Tiempo en sesión</th></tr></thead>
+            <tbody id="rim-panel-activos"></tbody>
+          </table>
+        </section>
+        <section class="rim-panel-tarjeta" aria-labelledby="rim-panel-actividad">
+          <h3 id="rim-panel-actividad">Actividad por vendedor</h3>
+          <p>Totales históricos de los registros con vendedor identificado.</p>
+          <table aria-labelledby="rim-panel-actividad">
+            <thead><tr><th scope="col">Vendedor</th><th scope="col" class="rim-panel-num">Cotizaciones</th><th scope="col" class="rim-panel-num">Pedidos</th></tr></thead>
+            <tbody id="rim-panel-vendedores"></tbody>
+          </table>
+        </section>
+      </div>
+      <footer class="rim-panel-pie">
+        <p class="rim-panel-estado" id="rim-panel-estado" role="status"></p>
+        <button type="button" id="rim-panel-recargar" onclick="rimActualizarPanelVentas()" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold">Actualizar</button>
+      </footer>
+    </div>
+  </dialog>
 
   <!-- BARRA DE ESTADO -->
   <div class="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between text-xs text-slate-600 font-medium">
@@ -1640,15 +1704,22 @@
       actualizarTotalesCotizacion(granTotal);
     }
 
+    <?!= rimFechaEntrega_.toString() ?>
+
     function copiarWhatsApp() {
       if(!cotizacion.length){mostrarToast('Agrega al menos una pieza a Cotización');return;}
       var p=rimResumenPagoCotizacion(),mixto=p.modo==='mixto',texto='';
+      var partes = new Intl.DateTimeFormat('es-VE', {timeZone:'America/Caracas', year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(new Date());
+      var fecha = {};
+      partes.forEach(function(pieza) { fecha[pieza.type] = pieza.value; });
+      var hoy = fecha.year + '-' + fecha.month + '-' + fecha.day;
       cotizacion.forEach(function(it,i){
         var precio=obtenerPrecioUnitario(it),sub=redondearMoneda(precio*it.cant),tipo=rimPrecioTipoCotizacion(it).indexOf('div_')===0?'Divisa':'BCV';
         texto+=(i+1)+'. *'+it.item+'* ('+it.marca+')\n';
         texto+='   • Precio unitario: $'+precio.toFixed(2)+' + IVA'+(mixto?' · '+tipo:'')+'\n';
         texto+='   • Cant: '+it.cant+' · Subtotal: *$'+sub.toFixed(2)+'*\n';
-        texto+='   • Entrega: '+rimTiempoEntregaCotizacion(it)+'\n\n';
+        var plazo = rimFechaEntrega_(rimTiempoEntregaCotizacion(it), hoy);
+        texto+='   • '+(plazo.indexOf('Entrega a ')===0 ? plazo : 'Entrega: '+plazo)+'\n\n';
       });
       texto+='----------------------------------------\n';
       if(mixto){
@@ -2657,7 +2728,84 @@
       document.getElementById('rim-btn-login').focus();
       return false;
     }
+    var rimPresenciaPendiente = false;
+    var rimPanelPendiente = false;
+
+    function rimPuedeVerPanelVentas() {
+      return !!(rimUsuario && (rimUsuario.rol === 'propietario' || rimUsuario.rol === 'supervisora'));
+    }
+
+    async function rimPulsoVentas() {
+      if (!rimUsuario || rimPresenciaPendiente) return;
+      rimPresenciaPendiente = true;
+      try { await rimRpc('actualizarPresenciaVentas', []); }
+      catch (err) { /* El siguiente pulso reintenta; rimRpc procesa las sesiones vencidas. */ }
+      finally { rimPresenciaPendiente = false; }
+      if (!document.hidden && document.getElementById('rim-panel-ventas').open) rimActualizarPanelVentas();
+    }
+
+    function rimAbrirPanelVentas() {
+      if (!rimPuedeVerPanelVentas() || !rimNecesitaSesion()) return;
+      var panel = document.getElementById('rim-panel-ventas');
+      if (panel.open) return;
+      panel.showModal();
+      rimActualizarPanelVentas();
+    }
+
+    function rimDuracionSesion(segundos) {
+      var dias = Math.floor(segundos / 86400);
+      var horas = Math.floor(segundos / 3600) % 24;
+      var minutos = Math.floor(segundos / 60) % 60;
+      if (dias) return dias + ' d ' + horas + ' h';
+      if (horas) return horas + ' h ' + minutos + ' min';
+      return minutos ? minutos + ' min' : '< 1 min';
+    }
+
+    function rimLimpiarPanelVentas() {
+      document.getElementById('rim-panel-ventas').close();
+      ['rim-panel-activos', 'rim-panel-vendedores', 'rim-panel-estado'].forEach(function(id) {
+        document.getElementById(id).replaceChildren();
+      });
+      ['activos', 'cotizaciones', 'pedidos'].forEach(function(tipo) {
+        document.getElementById('rim-panel-total-' + tipo).textContent = '—';
+      });
+    }
+
+    async function rimActualizarPanelVentas() {
+      if (!rimPuedeVerPanelVentas() || rimPanelPendiente) return;
+      var recargar = document.getElementById('rim-panel-recargar');
+      var estado = document.getElementById('rim-panel-estado');
+      var epoch = rimEpoch;
+      rimPanelPendiente = recargar.disabled = true;
+      estado.textContent = 'Actualizando…';
+      try {
+        var datos = await rimRpc('obtenerPanelVentas', []);
+        var perfiles = datos.perfiles, vendedores = datos.vendedores;
+        var etiquetas = { propietario: 'Propietario / Administración', supervisora: 'Supervisión / Dirección', vendedor: 'Ventas' };
+        document.getElementById('rim-panel-activos').innerHTML = perfiles.length ? perfiles.map(function(p) {
+          return '<tr><th scope="row"><span class="rim-panel-perfil"><span class="rim-panel-punto" aria-hidden="true"></span>' +
+            rimTextoSeguro(p.nombre) + '</span><span class="text-xs font-normal text-slate-600">' + rimTextoSeguro(etiquetas[p.rol] || p.rol) +
+            '</span></th><td class="rim-panel-num">' + rimTextoSeguro(rimDuracionSesion(p.segundos)) + '</td></tr>';
+        }).join('') : '<tr><td colspan="2">No hay perfiles en línea.</td></tr>';
+        document.getElementById('rim-panel-vendedores').innerHTML = vendedores.length ? vendedores.map(function(v) {
+          return '<tr><th scope="row">' + rimTextoSeguro(v.nombre) + '</th><td class="rim-panel-num">' + Number(v.cotizaciones) +
+            '</td><td class="rim-panel-num">' + Number(v.pedidos) + '</td></tr>';
+        }).join('') : '<tr><td colspan="3">No hay vendedores registrados.</td></tr>';
+        document.getElementById('rim-panel-total-activos').textContent = perfiles.length;
+        ['cotizaciones', 'pedidos'].forEach(function(tipo) {
+          document.getElementById('rim-panel-total-' + tipo).textContent =
+            vendedores.reduce(function(total, v) { return total + v[tipo]; }, 0).toLocaleString('es-VE');
+        });
+        estado.textContent = 'Actualizado a las ' + new Date().toLocaleTimeString('es-VE', {timeZone:'America/Caracas', hour:'2-digit', minute:'2-digit'});
+      } catch (err) {
+        if (epoch === rimEpoch) estado.textContent = 'No se pudo actualizar. Los datos anteriores pueden estar desactualizados.';
+      } finally {
+        rimPanelPendiente = recargar.disabled = false;
+      }
+    }
+
     function rimActualizarAcceso() {
+      document.getElementById('rim-btn-panel-ventas').hidden = !rimPuedeVerPanelVentas();
       document.getElementById('rim-identidad').textContent = rimUsuario ? rimUsuario.nombre + ' · ' + rimUsuario.email : 'Catálogo público · Accede con Google para cotizar y gestionar pedidos';
       document.getElementById('rim-btn-login').hidden = !!rimUsuario;
       document.getElementById('rim-btn-salir').hidden = !rimUsuario;
@@ -2714,6 +2862,7 @@
     }
     async function rimActivarUsuario(u) {
       rimEpoch++; rimUsuario = u; rimActualizarAcceso();
+      rimPulsoVentas();
       var preferencias = rimLeerJson('rim_preferencias:' + u.email, {});
       var sede = ['maracay','elTigre','barquisimeto'].indexOf(preferencias.almacen) >= 0 ? preferencias.almacen : 'maracay';
       cambiarAlmacen(sede);
@@ -2724,6 +2873,7 @@
     }
     function rimCerrarSesionLocal() {
       rimGuardarBorrador(); rimEpoch++; rimUsuario = null; rimToken = ''; rimAlmacen('local','rim_token',null); rimAlmacen('sesion','rim_token',null);
+      rimLimpiarPanelVentas();
       cotizacion = []; pedidosCompras = []; misTicketsSeguimiento = []; comentariosGlobales = []; notificacionesVentas = [];
       estadosAnterioresTickets = {}; ticketComentariosActivo = null; rimUltimoDocumento = null;
       if (rimUrlPdf) { URL.revokeObjectURL(rimUrlPdf); rimUrlPdf = null; }
@@ -2932,7 +3082,7 @@
       rimCamposBorrador().forEach(function(id){document.getElementById(id).addEventListener('input',rimProgramarBorrador);document.getElementById(id).addEventListener('change',rimProgramarBorrador);});
       // Asociar las etiquetas existentes con sus controles.
       document.querySelectorAll('label').forEach(function(label){if(label.htmlFor)return;var padre=label.parentElement,control=padre.querySelector('input[id],select[id],textarea[id]');if(control)label.htmlFor=control.id;});
-      document.addEventListener('visibilitychange',function(){if(document.hidden)rimGuardarBorrador();else{cargarDatos();cargarNotificacionesYSeguimiento(true);}});
+      document.addEventListener('visibilitychange',function(){if(document.hidden)rimGuardarBorrador();else{cargarDatos();cargarNotificacionesYSeguimiento(true);rimPulsoVentas();}});
       window.addEventListener('pagehide',rimGuardarBorrador);
       rimActualizarAcceso();
       var token=rimAlmacen('local','rim_token') || rimAlmacen('sesion','rim_token'), restoreEpoch=rimEpoch;
@@ -2956,6 +3106,7 @@
       cargarDatos();
       iniciarAutoSincronizacion();
       iniciarPollingVentas();
+      setInterval(rimPulsoVentas, 45000);
 
     }
 

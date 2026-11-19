@@ -9,7 +9,7 @@ function obtenerLibroCentral_() {
 
 function doGet(e) {
   if (e && e.parameter && (e.parameter.state || e.parameter.code || e.parameter.error)) return rimCallbackOAuth_(e);
-  return HtmlService.createHtmlOutputFromFile('Index')
+  return HtmlService.createTemplateFromFile('Index').evaluate()
     .setTitle('Maestro de Productos · Rodaindustria Maracay')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');

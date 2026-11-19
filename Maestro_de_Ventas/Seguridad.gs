@@ -143,12 +143,14 @@ function rimCallbackOAuth_(e) {
         }
     etapa = 'crear sesion del maestro';
     var sesion = rimId_();
+    var inicio = Date.now();
     rimGuardarSesion_(sesion, {
       email: email,
       nombre: perfil.nombre,
       rol: perfil.rol,
       sub: claims.sub,
-      vence: Date.now() + RIM_SESION_DIAS_ * 86400000
+      inicio: inicio,
+      vence: inicio + RIM_SESION_DIAS_ * 86400000
     });
     tx = { consulta: tx.consulta, sesion: sesion };
     mensaje = 'Acceso confirmado. Regresa a la pestana del maestro. Puedes cerrar esta ventana.';

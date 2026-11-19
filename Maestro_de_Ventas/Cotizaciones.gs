@@ -176,8 +176,9 @@ function rimHtmlPdf_(d) {
   function bs(v) { return 'Bs. ' + Number(v).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function fecha(v) { return Utilities.formatDate(new Date(v), 'America/Caracas', 'dd/MM/yyyy'); }
   var logo=rimLogoPdf_(),pago=rimPagoDocumento_(d),divisa=pago.modo==='divisa',mixto=pago.modo==='mixto';
+  var hoy = Utilities.formatDate(new Date(), 'America/Caracas', 'yyyy-MM-dd');
   var filas=d.items.map(function(it){
-    var plazo=String(it.tiempo_entrega||(d.plazosEntregaGuardados?'Por confirmar':'Sin plazo registrado')).replace(/\s+/g,' ').trim();
+    var plazo = rimFechaEntrega_(it.tiempo_entrega || (d.plazosEntregaGuardados ? 'Por confirmar' : 'Sin plazo registrado'), hoy);
     var detalle=[it.marca,plazo];if(mixto)detalle.push(it.precioTipo&&it.precioTipo.indexOf('div_')===0?'Divisa':'BCV');
     return '<tr><td class="producto"><strong>'+e(it.item)+'</strong><div class="detalle-producto">'+detalle.filter(Boolean).map(e).join(' · ')+'</div></td><td class="num">'+usd(it.precio)+'</td><td class="num">'+it.cant+'</td><td class="num subtotal">'+usd(it.subtotal)+'</td></tr>';
   }).join('');
@@ -206,4 +207,41 @@ function rimHtmlPdf_(d) {
 function comprobarLogoCotizacion() {
   var logo = rimLogoPdf_();
   Logger.log('Logo listo para el PDF (' + logo.substring(5, logo.indexOf(';')) + ').');
+}
+
+// También se incluye en Index para que ambos formatos usen las mismas reglas.
+function rimFechaEntrega_(plazo, hoy) {
+  var original = String(plazo == null ? '' : plazo).replace(/\s+/g, ' ').trim() || 'Por confirmar';
+  var texto = original.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  var rango = texto.match(/^(?:(?:en|a|de)\s+)?(\d+)(?:\s*(?:a|[-–—])\s*(\d+))?(?:\s+dias?(?:\s+(habil(?:es)?|laborables?|calendario|continuos?|corridos?))?)?\.?$/);
+  var desde, hasta, habiles = false;
+  if (rango) {
+    desde = Number(rango[1]);
+    hasta = rango[2] == null ? desde : Number(rango[2]);
+    habiles = /^(habil|laborable)/.test(rango[3] || '');
+    if (hasta < desde || hasta > 3650) return original;
+  } else if (/^(hoy|inmediat[oa]|entrega inmediata|mismo dia)\.?$/.test(texto)) {
+    desde = hasta = 0;
+  } else if (/^manana\.?$/.test(texto)) {
+    desde = hasta = 1;
+  } else {
+    return original;
+  }
+  var base = new Date(hoy + 'T00:00:00Z');
+  if (!Number.isFinite(base.getTime())) return original;
+  var dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  var meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  function fecha(offset) {
+    var d = new Date(base.getTime());
+    if (!habiles) d.setUTCDate(d.getUTCDate() + offset);
+    while (habiles && offset) {
+      d.setUTCDate(d.getUTCDate() + 1);
+      if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) offset--;
+    }
+    var resultado = dias[d.getUTCDay()] + ' ' + d.getUTCDate();
+    if (d.getUTCMonth() !== base.getUTCMonth() || d.getUTCFullYear() !== base.getUTCFullYear()) resultado += ' de ' + meses[d.getUTCMonth()];
+    if (d.getUTCFullYear() !== base.getUTCFullYear()) resultado += ' de ' + d.getUTCFullYear();
+    return resultado;
+  }
+  return 'Entrega a ' + fecha(desde) + (desde === hasta ? '' : ' al ' + fecha(hasta));
 }
