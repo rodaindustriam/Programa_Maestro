@@ -372,6 +372,26 @@
       <form method="dialog"><button class="rim-panel-cerrar" aria-label="Cerrar panel" autofocus>✕</button></form>
     </header>
     <div class="rim-panel-cuerpo">
+      <form id="rim-panel-filtros" onsubmit="event.preventDefault(); rimAplicarPeriodoVentas()" class="rim-panel-tarjeta flex flex-wrap items-end gap-3">
+        <div>
+          <label for="rim-panel-periodo" class="block text-xs font-bold mb-1">Actividad comercial</label>
+          <select id="rim-panel-periodo" onchange="rimCambiarPeriodoVentas()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white">
+            <option value="hoy">Hoy</option>
+            <option value="7dias">Últimos 7 días</option>
+            <option value="15dias">Últimos 15 días</option>
+            <option value="mes">Último mes</option>
+            <option value="personalizado">Personalizado</option>
+          </select>
+        </div>
+        <div id="rim-panel-personalizado" hidden>
+          <div class="flex flex-wrap items-end gap-3">
+            <div><label for="rim-panel-desde" class="block text-xs font-bold mb-1">Desde</label><input id="rim-panel-desde" type="date" class="border border-slate-300 rounded-lg px-2 py-2 text-sm"></div>
+            <div><label for="rim-panel-hasta" class="block text-xs font-bold mb-1">Hasta</label><input id="rim-panel-hasta" type="date" class="border border-slate-300 rounded-lg px-2 py-2 text-sm"></div>
+            <button type="submit" class="px-3 py-2 rounded-lg bg-sky-900 text-white text-sm font-bold">Aplicar filtro</button>
+          </div>
+        </div>
+        <p id="rim-panel-periodo-ayuda" class="text-xs text-slate-600">Fechas de Caracas. Último mes equivale a los últimos 30 días, incluido hoy.</p>
+      </form>
       <dl class="rim-panel-resumen">
         <div><dt>Perfiles en línea</dt><dd id="rim-panel-total-activos">—</dd></div>
         <div><dt>Cotizaciones de ventas</dt><dd id="rim-panel-total-cotizaciones">—</dd></div>
@@ -388,7 +408,7 @@
         </section>
         <section class="rim-panel-tarjeta" aria-labelledby="rim-panel-actividad">
           <h3 id="rim-panel-actividad">Actividad por vendedor</h3>
-          <p>Totales históricos de los registros con vendedor identificado.</p>
+          <p id="rim-panel-rango-aplicado" aria-live="polite">Actividad de hoy · Caracas</p>
           <table aria-labelledby="rim-panel-actividad">
             <thead><tr><th scope="col">Vendedor</th><th scope="col" class="rim-panel-num">Cotizaciones</th><th scope="col" class="rim-panel-num">Pedidos</th></tr></thead>
             <tbody id="rim-panel-vendedores"></tbody>
@@ -2765,6 +2785,68 @@
     }
     var rimPresenciaPendiente = false;
     var rimPanelPendiente = false;
+    var rimPanelFiltros = { periodo: 'hoy' };
+    var rimPanelRevision = 0;
+
+    function rimHoyPanelVentas() {
+      var partes = new Intl.DateTimeFormat('es-VE', {timeZone:'America/Caracas', year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(new Date());
+      var fecha = {};
+      partes.forEach(function(p) { fecha[p.type] = p.value; });
+      return fecha.year + '-' + fecha.month + '-' + fecha.day;
+    }
+
+    function rimReiniciarPeriodoVentas() {
+      rimPanelRevision++;
+      rimPanelFiltros = { periodo: 'hoy' };
+      document.getElementById('rim-panel-periodo').value = 'hoy';
+      document.getElementById('rim-panel-personalizado').hidden = true;
+      ['desde', 'hasta'].forEach(function(limite) {
+        var campo = document.getElementById('rim-panel-' + limite);
+        campo.required = false;
+        campo.value = rimHoyPanelVentas();
+        campo.setCustomValidity('');
+      });
+      document.getElementById('rim-panel-rango-aplicado').textContent = 'Actividad de hoy · Caracas';
+      ['cotizaciones', 'pedidos'].forEach(function(tipo) {
+        document.getElementById('rim-panel-total-' + tipo).textContent = '—';
+      });
+      document.getElementById('rim-panel-vendedores').replaceChildren();
+    }
+
+    function rimCambiarPeriodoVentas() {
+      var personalizado = document.getElementById('rim-panel-periodo').value === 'personalizado';
+      document.getElementById('rim-panel-personalizado').hidden = !personalizado;
+      ['desde', 'hasta'].forEach(function(limite) {
+        var campo = document.getElementById('rim-panel-' + limite);
+        campo.required = personalizado;
+        campo.setCustomValidity('');
+      });
+      if (!personalizado) rimAplicarPeriodoVentas();
+    }
+
+    function rimAplicarPeriodoVentas() {
+      var filtros = { periodo: document.getElementById('rim-panel-periodo').value };
+      if (filtros.periodo === 'personalizado') {
+        var desde = document.getElementById('rim-panel-desde');
+        var hasta = document.getElementById('rim-panel-hasta');
+        desde.setCustomValidity('');
+        hasta.setCustomValidity('');
+        if (desde.value && hasta.value && desde.value > hasta.value) {
+          hasta.setCustomValidity('La fecha final debe ser igual o posterior a la inicial.');
+        }
+        if (!document.getElementById('rim-panel-filtros').reportValidity()) return;
+        filtros.desde = desde.value;
+        filtros.hasta = hasta.value;
+      }
+      rimPanelFiltros = filtros;
+      rimPanelRevision++;
+      document.getElementById('rim-panel-vendedores').replaceChildren();
+      ['cotizaciones', 'pedidos'].forEach(function(tipo) {
+        document.getElementById('rim-panel-total-' + tipo).textContent = '—';
+      });
+      document.getElementById('rim-panel-rango-aplicado').textContent = 'Consultando período…';
+      rimActualizarPanelVentas();
+    }
 
     function rimPuedeVerPanelVentas() {
       return !!(rimUsuario && (rimUsuario.rol === 'propietario' || rimUsuario.rol === 'supervisora'));
@@ -2783,6 +2865,7 @@
       if (!rimPuedeVerPanelVentas() || !rimNecesitaSesion()) return;
       var panel = document.getElementById('rim-panel-ventas');
       if (panel.open) return;
+      rimReiniciarPeriodoVentas();
       panel.showModal();
       rimActualizarPanelVentas();
     }
@@ -2798,6 +2881,7 @@
 
     function rimLimpiarPanelVentas() {
       document.getElementById('rim-panel-ventas').close();
+      rimReiniciarPeriodoVentas();
       ['rim-panel-activos', 'rim-panel-vendedores', 'rim-panel-estado'].forEach(function(id) {
         document.getElementById(id).replaceChildren();
       });
@@ -2810,11 +2894,16 @@
       if (!rimPuedeVerPanelVentas() || rimPanelPendiente) return;
       var recargar = document.getElementById('rim-panel-recargar');
       var estado = document.getElementById('rim-panel-estado');
-      var epoch = rimEpoch;
+      var epoch = rimEpoch, revision = rimPanelRevision;
       rimPanelPendiente = recargar.disabled = true;
       estado.textContent = 'Actualizando…';
       try {
-        var datos = await rimRpc('obtenerPanelVentas', []);
+        var datos = await rimRpc('obtenerPanelVentas', [rimPanelFiltros]);
+        if (epoch !== rimEpoch || revision !== rimPanelRevision) return;
+        var rango = datos.rango;
+        function fechaCorta(dia) { return dia.split('-').reverse().join('/'); }
+        document.getElementById('rim-panel-rango-aplicado').textContent =
+          (rango.desde === rango.hasta ? fechaCorta(rango.desde) : fechaCorta(rango.desde) + ' – ' + fechaCorta(rango.hasta)) + ' · Caracas';
         var perfiles = datos.perfiles, vendedores = datos.vendedores;
         var etiquetas = { propietario: 'Propietario / Administración', supervisora: 'Supervisión / Dirección', vendedor: 'Ventas' };
         document.getElementById('rim-panel-activos').innerHTML = perfiles.length ? perfiles.map(function(p) {
@@ -2833,9 +2922,12 @@
         });
         estado.textContent = 'Actualizado a las ' + new Date().toLocaleTimeString('es-VE', {timeZone:'America/Caracas', hour:'2-digit', minute:'2-digit'});
       } catch (err) {
-        if (epoch === rimEpoch) estado.textContent = 'No se pudo actualizar. Los datos anteriores pueden estar desactualizados.';
+        if (epoch === rimEpoch && revision === rimPanelRevision) estado.textContent = 'No se pudo actualizar. Los datos anteriores pueden estar desactualizados.';
       } finally {
         rimPanelPendiente = recargar.disabled = false;
+        if (revision !== rimPanelRevision && rimPuedeVerPanelVentas() && document.getElementById('rim-panel-ventas').open) {
+          rimActualizarPanelVentas();
+        }
       }
     }
 

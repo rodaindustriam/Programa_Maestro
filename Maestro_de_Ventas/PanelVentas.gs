@@ -1,6 +1,6 @@
 // Presencia reciente. La sesión de Google se valida por separado.
 var RIM_PRESENCIA_SEGUNDOS_ = 120;
-var RIM_METRICAS_VENTAS_CACHE_ = 'RIM_METRICAS_VENTAS_V1';
+var RIM_METRICAS_VENTAS_CACHE_ = 'RIM_METRICAS_VENTAS_V2';
 
 function rimClavePresencia_(email) {
   return 'RIM_PRESENCIA_V1:' + rimHash_(email);
@@ -12,13 +12,16 @@ function actualizarPresenciaVentas(token) {
   return true;
 }
 
-function obtenerPanelVentas(token) {
+function obtenerPanelVentas(filtros, token) {
+  // Permite que una pestaña de la versión anterior siga consultando el día actual.
+  if (typeof filtros === 'string' && token == null) { token = filtros; filtros = {}; }
   var perfil = rimUsuario_(token);
   if (perfil.rol !== 'propietario' && perfil.rol !== 'supervisora') {
     throw new Error('ACCESO_DENEGADO: Este panel es para supervisión y administración.');
   }
   var cache = CacheService.getScriptCache();
-  return { perfiles: rimPerfilesEnLinea_(cache), vendedores: rimMetricasVentas_(cache) };
+  var rango = rimRangoPanelVentas_(filtros);
+  return { perfiles: rimPerfilesEnLinea_(cache), vendedores: rimMetricasVentas_(cache, rango), rango: rango };
 }
 
 function rimPerfilesEnLinea_(cache) {
@@ -52,8 +55,9 @@ function rimFilasPanelVentas_(libro, nombre, ancho) {
   return hoja.getRange(2, 1, hoja.getLastRow() - 1, Math.min(ancho, hoja.getLastColumn())).getValues();
 }
 
-function rimMetricasVentas_(cache) {
-  var guardado = cache.get(RIM_METRICAS_VENTAS_CACHE_);
+function rimMetricasVentas_(cache, rango) {
+  var clave = RIM_METRICAS_VENTAS_CACHE_ + ':' + rango.desde + ':' + rango.hasta;
+  var guardado = cache.get(clave);
   if (guardado) return JSON.parse(guardado);
   var libro = obtenerLibroCentral_();
   var vendedores = Object.create(null), porNombre = Object.create(null);
@@ -73,7 +77,8 @@ function rimMetricasVentas_(cache) {
   rimFilasCotizaciones_().forEach(function(fila) {
     var folio = normalizar(fila[0]);
     if (!folio || folios.has(folio)) return;
-    var doc = fila[11] ? null : rimDocumentoFila_(fila);
+    var doc = rimDocumentoFila_(fila);
+    if (!rimFechaEnRangoPanel_(fila[1] || (doc && doc.fecha), rango)) return;
     var responsable = vendedor(fila[11] || (doc && doc.emailVendedor), doc && doc.vendedor);
     if (responsable) {
       responsable.cotizaciones++;
@@ -85,7 +90,7 @@ function rimMetricasVentas_(cache) {
   ['Solicitudes_Pedidos', 'Historico_Pedidos'].forEach(function(nombre) {
     rimFilasPanelVentas_(libro, nombre, 5).forEach(function(fila) {
       var ticket = normalizar(fila[0]);
-      if (ticket && (!tickets.has(ticket) || !tickets.get(ticket).nombre)) tickets.set(ticket, { nombre: fila[4] });
+      if (ticket && (!tickets.has(ticket) || !tickets.get(ticket).nombre)) tickets.set(ticket, { nombre: fila[4], fecha: fila[2] });
     });
   });
   rimFilasPanelVentas_(libro, 'RIM_Envios_Pedidos', 5).forEach(function(fila) {
@@ -93,15 +98,64 @@ function rimMetricasVentas_(cache) {
     if (!ticket || (!tickets.has(ticket) && normalizar(fila[4]) !== 'confirmado')) return;
     var pedido = tickets.get(ticket) || {};
     if (normalizar(fila[1])) pedido.email = fila[1];
+    if (!pedido.fecha) pedido.fecha = fila[3];
     tickets.set(ticket, pedido);
   });
   tickets.forEach(function(pedido) {
+    if (!rimFechaEnRangoPanel_(pedido.fecha, rango)) return;
     var responsable = vendedor(pedido.email, pedido.nombre);
     if (responsable) responsable.pedidos++;
   });
 
   var resultado = Object.keys(vendedores).map(function(email) { return vendedores[email]; });
   resultado.sort(function(a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
-  cache.put(RIM_METRICAS_VENTAS_CACHE_, JSON.stringify(resultado), 60);
+  cache.put(clave, JSON.stringify(resultado), 60);
   return resultado;
+}
+
+
+function rimDiaPanelValido_(dia) {
+  if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) return false;
+  var fecha = new Date(dia + 'T00:00:00Z');
+  return isFinite(fecha.getTime()) && fecha.toISOString().slice(0, 10) === dia;
+}
+
+function rimRangoPanelVentas_(filtros) {
+  filtros = filtros || {};
+  var hoy = Utilities.formatDate(new Date(), 'America/Caracas', 'yyyy-MM-dd');
+  var periodo = filtros.periodo || 'hoy';
+  var dias = { hoy: 1, '7dias': 7, '15dias': 15, mes: 30 };
+  if (periodo === 'personalizado') {
+    if (!rimDiaPanelValido_(filtros.desde) || !rimDiaPanelValido_(filtros.hasta) || filtros.desde > filtros.hasta) {
+      throw new Error('RANGO_INVALIDO: Selecciona una fecha inicial y final válidas, en ese orden.');
+    }
+    return { desde: filtros.desde, hasta: filtros.hasta };
+  }
+  if (!Object.prototype.hasOwnProperty.call(dias, periodo)) throw new Error('RANGO_INVALIDO: Período desconocido.');
+  var inicio = new Date(hoy + 'T00:00:00Z');
+  inicio.setUTCDate(inicio.getUTCDate() - dias[periodo] + 1);
+  return { desde: inicio.toISOString().slice(0, 10), hasta: hoy };
+}
+
+function rimFechaEnRangoPanel_(valor, rango) {
+  var dia = '';
+  if (valor instanceof Date) {
+    if (!isFinite(valor.getTime())) return false;
+    dia = Utilities.formatDate(valor, 'America/Caracas', 'yyyy-MM-dd');
+  } else if (typeof valor === 'string') {
+    valor = valor.trim();
+    if (rimDiaPanelValido_(valor)) {
+      dia = valor;
+    } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/.test(valor)) {
+      var fecha = new Date(valor);
+      if (!isFinite(fecha.getTime())) return false;
+      dia = Utilities.formatDate(fecha, 'America/Caracas', 'yyyy-MM-dd');
+    } else {
+      var partes = valor.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ ,T]+\d{1,2}:\d{2}(?::\d{2})?)?$/);
+      if (!partes) return false;
+      dia = partes[3] + '-' + partes[2].padStart(2, '0') + '-' + partes[1].padStart(2, '0');
+      if (!rimDiaPanelValido_(dia)) return false;
+    }
+  }
+  return !!dia && dia >= rango.desde && dia <= rango.hasta;
 }
