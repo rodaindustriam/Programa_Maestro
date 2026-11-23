@@ -2256,27 +2256,60 @@
       cambiarEstadoTicketEnBD(ticketId, 'ORDEN_COMPRA');
     }
 
+    function comprasMensajeProveedor(t) {
+      var estado = String(t.estado || 'PENDIENTE').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+      var etapa = estado.indexOf('DESPACH') >= 0 ? 'DESPACHADO_CONFORME' : normalizarClaveEstado(estado);
+      var mensajes = {
+        PENDIENTE: {
+          titulo: 'Solicitud de cotización',
+          inicio: 'Buen día. Agradecemos cotizar los siguientes productos:',
+          cierre: 'Por favor indicar disponibilidad, precio unitario, impuestos aplicables, plazo de entrega y condiciones de pago.'
+        },
+        ORDEN_COMPRA: {
+          titulo: 'Confirmación de condiciones de compra',
+          inicio: 'Buen día. Estamos gestionando la compra de los siguientes productos:',
+          cierre: 'Agradecemos confirmar disponibilidad, precio final, condiciones de pago y fecha de entrega antes de formalizar la orden.'
+        },
+        EN_TRANSITO: {
+          titulo: 'Seguimiento de entrega',
+          inicio: 'Buen día. Solicitamos una actualización de la entrega de los siguientes productos:',
+          cierre: 'Por favor confirmar el estado del envío y la fecha estimada de llegada. Si ya fue despachado, agradecemos compartir la guía y los datos del transporte.'
+        },
+        RECIBIDO: {
+          titulo: 'Documentación de productos recibidos',
+          inicio: 'Buen día. Solicitamos la documentación correspondiente a los siguientes productos recibidos:',
+          cierre: 'Agradecemos enviar o confirmar la factura y los soportes de entrega para completar la revisión de la compra.'
+        },
+        RECHAZADO_DEVOLUCION: {
+          titulo: 'Revisión de cambio o devolución',
+          inicio: 'Buen día. Necesitamos coordinar la revisión de los siguientes productos:',
+          cierre: 'Por favor indicar el procedimiento y los requisitos para gestionar el cambio o la devolución, así como el plazo de respuesta.'
+        },
+        DESPACHADO_CONFORME: {
+          titulo: 'Cierre de compra',
+          inicio: 'Buen día. Estamos completando el cierre documental de la compra de los siguientes productos:',
+          cierre: 'Agradecemos confirmar si queda documentación pendiente y compartir los soportes correspondientes.'
+        }
+      };
+      var mensaje = mensajes[etapa] || mensajes.PENDIENTE;
+      var productos = (t.items || []).map(function(it, i) {
+        var producto = String(it.item || '').trim();
+        var marca = String(it.marca || '').trim();
+        // Evitar repetir la marca cuando ya forma parte del nombre.
+        if (marca && producto.toUpperCase().endsWith(' ' + marca.toUpperCase())) {
+          producto = producto.slice(0, -marca.length).trim();
+        }
+        return (i + 1) + '. ' + producto + (marca ? ' - Marca ' + marca : '') +
+          '\nCantidad: ' + it.cant + (Number(it.cant) === 1 ? ' unidad' : ' unidades');
+      }).join('\n\n');
+      return mensaje.titulo + '\n\n' + mensaje.inicio + '\n\n' + productos +
+        '\n\n' + mensaje.cierre + '\n\nGracias por su apoyo.';
+    }
+
     function abrirResumenProveedor(ticket) {
       var t = ticketsAgrupados.find(function(x) { return x.ticket === ticket; });
       if (!t) return;
-
-      var texto = "⚙️ *SOLICITUD DE COTIZACIÓN · RODAINDUSTRIA MARACAY*\n";
-      texto += "📄 Requerimiento: *" + t.ticket + "*\n";
-      texto += "🏢 Sucursal Entrega: *" + t.sucursal_entrega + "*\n";
-      texto += "👤 Solicitado por: *" + t.responsable + "* (" + t.sucursal_origen + ")\n";
-      texto += "----------------------------------------\n";
-      
-      t.items.forEach(function(it, i) {
-        var infoProv = obtenerInfoProveedor(it.prv);
-        var nombreRealProv = infoProv.nombre || it.prv || 'PROVEEDOR';
-        texto += (i + 1) + ". *" + it.item + "* (" + (it.marca || 'GEN') + " | Prov: " + nombreRealProv + ")\n";
-        texto += "   • Cantidad requerida: *" + it.cant + " unid.*\n\n";
-      });
-
-      texto += "----------------------------------------\n";
-      texto += "Por favor confirmar disponibilidad inmediata y mejores precios de distribuidor. ¡Gracias!";
-
-      document.getElementById('texto-proveedor').value = texto;
+      document.getElementById('texto-proveedor').value = comprasMensajeProveedor(t);
       document.getElementById('modal-proveedor').classList.remove('hidden');
     }
 
