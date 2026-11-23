@@ -282,6 +282,29 @@
       #rim-panel-ventas .rim-panel-resumen dt { font-size:10px; min-height:28px; }
       #rim-panel-ventas .rim-panel-resumen dd { font-size:23px; }
     }
+    #rim-calculadora { width:min(350px,calc(100% - 24px)); max-height:calc(100dvh - 24px); padding:0; border:1px solid #d7e3e1; border-radius:20px; background:#f4f8f7; color:#15332d; box-shadow:0 24px 80px #0a292744; }
+    #rim-calculadora::backdrop { background:#0b25294d; backdrop-filter:blur(3px); }
+    .rim-calc-cab { display:flex; align-items:center; justify-content:space-between; padding:17px 19px; background:#123d34; color:white; }
+    .rim-calc-cab h2 { margin:0; font-size:16px; font-weight:750; }
+    .rim-calc-cerrar { padding:3px 7px; border:1px solid #ffffff50; border-radius:7px; color:white; background:transparent; }
+    .rim-calc-cuerpo { padding:16px; }
+    .rim-calc-tasa { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; font-size:11px; color:#43665d; }
+    .rim-calc-tasa button { color:#176e58; background:transparent; border:0; text-decoration:underline; font-size:11px; }
+    .rim-calc-pantalla { padding:14px; border:1px solid #d9e5e0; border-radius:12px; background:white; text-align:right; overflow-wrap:anywhere; }
+    #rim-calc-operacion { min-height:17px; font-size:11px; color:#58746b; }
+    #rim-calc-valor { display:block; font-size:32px; font-weight:650; font-variant-numeric:tabular-nums; line-height:1.4; letter-spacing:-.03em; }
+    #rim-calc-conversion { margin-top:7px; font-size:12px; color:#187359; min-height:18px; }
+    .rim-calc-teclas { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; margin-top:13px; }
+    .rim-calc-teclas button { min-height:45px; border:1px solid #dce5e0; border-radius:9px; background:#fff; color:#1d3c34; font-size:19px; font-weight:650; touch-action:manipulation; }
+    .rim-calc-teclas button:hover { background:#e6f1eb; }
+    .rim-calc-teclas .rim-calc-funcion { background:#e8efeb; font-size:16px; }
+    .rim-calc-teclas .rim-calc-operador { background:#d8ece3; color:#12654e; }
+    .rim-calc-teclas .rim-calc-igual { background:#147b5b; color:white; border-color:#147b5b; }
+    .rim-calc-teclas button:focus-visible,.rim-calc-cambio:focus-visible { outline:2px solid #0284c7; outline-offset:2px; }
+    .rim-calc-cambio { width:100%; min-height:40px; margin-top:10px; border:1px solid #b6d9c9; border-radius:9px; background:#e4f4eb; color:#166348; font-size:13px; font-weight:700; }
+    .rim-calc-cambio:disabled { opacity:.55; cursor:wait; }
+    .rim-calc-ayuda { margin:10px 0 0; font-size:10px; text-align:center; color:#58746b; }
+    #rim-btn-calculadora { background:transparent; border-top:0; border-right:0; border-bottom:0; padding-top:0; padding-bottom:0; font:inherit; line-height:inherit; }
   </style>
 </head>
 <body class="text-slate-800 antialiased pb-28">
@@ -999,11 +1022,47 @@
         <span id="lbl-tasa-bcv-header" class="font-mono font-black text-xs text-emerald-300">Bs. 889.58</span>
       </div>
     </div>
-    <div class="pl-1 border-l border-emerald-500/30 text-emerald-400/60 cursor-grab hover:text-emerald-300" title="Arrastrar posición">
-      <i class="fa-solid fa-grip-vertical text-xs"></i>
-    </div>
+    <button type="button" id="rim-btn-calculadora" onclick="rimAbrirCalculadora(event)" class="pl-1 border-l border-emerald-500/30 text-emerald-400/60 cursor-grab hover:text-emerald-300" title="Clic: calculadora BCV. Arrastra para mover." aria-label="Abrir calculadora BCV" aria-haspopup="dialog">
+      <i class="fa-solid fa-grip-vertical text-xs" aria-hidden="true"></i>
+    </button>
   </div>
 
+
+  <dialog id="rim-calculadora" aria-labelledby="rim-calc-titulo" onkeydown="rimTecladoCalculadora(event)">
+    <header class="rim-calc-cab"><h2 id="rim-calc-titulo">Calculadora BCV</h2><form method="dialog"><button class="rim-calc-cerrar" aria-label="Cerrar calculadora">✕</button></form></header>
+    <div class="rim-calc-cuerpo">
+      <div class="rim-calc-tasa"><span id="rim-calc-tasa" role="status">Consultando tasa oficial…</span><button type="button" id="rim-calc-refrescar" onclick="rimConsultarTasaCalculadora()">Actualizar</button></div>
+      <div class="rim-calc-pantalla">
+        <div id="rim-calc-operacion"></div>
+        <output id="rim-calc-valor" tabindex="0" autofocus aria-label="Resultado" aria-live="polite">0</output>
+        <div id="rim-calc-conversion"></div>
+      </div>
+      <div class="rim-calc-teclas">
+          <button type="button" data-calc-tecla="AC" class="rim-calc-funcion" aria-label="Borrar todo" onclick="rimTeclaCalculadora('AC')">AC</button>
+          <button type="button" data-calc-tecla="signo" class="rim-calc-funcion" aria-label="Cambiar signo" onclick="rimTeclaCalculadora('signo')">±</button>
+          <button type="button" data-calc-tecla="%" class="rim-calc-funcion" aria-label="Porcentaje" onclick="rimTeclaCalculadora('%')">%</button>
+          <button type="button" data-calc-tecla="/" class="rim-calc-operador" aria-label="Dividir" onclick="rimTeclaCalculadora('/')">÷</button>
+          <button type="button" data-calc-tecla="7" class="rim-calc-" aria-label="7" onclick="rimTeclaCalculadora('7')">7</button>
+          <button type="button" data-calc-tecla="8" class="rim-calc-" aria-label="8" onclick="rimTeclaCalculadora('8')">8</button>
+          <button type="button" data-calc-tecla="9" class="rim-calc-" aria-label="9" onclick="rimTeclaCalculadora('9')">9</button>
+          <button type="button" data-calc-tecla="*" class="rim-calc-operador" aria-label="Multiplicar" onclick="rimTeclaCalculadora('*')">×</button>
+          <button type="button" data-calc-tecla="4" class="rim-calc-" aria-label="4" onclick="rimTeclaCalculadora('4')">4</button>
+          <button type="button" data-calc-tecla="5" class="rim-calc-" aria-label="5" onclick="rimTeclaCalculadora('5')">5</button>
+          <button type="button" data-calc-tecla="6" class="rim-calc-" aria-label="6" onclick="rimTeclaCalculadora('6')">6</button>
+          <button type="button" data-calc-tecla="-" class="rim-calc-operador" aria-label="Restar" onclick="rimTeclaCalculadora('-')">−</button>
+          <button type="button" data-calc-tecla="1" class="rim-calc-" aria-label="1" onclick="rimTeclaCalculadora('1')">1</button>
+          <button type="button" data-calc-tecla="2" class="rim-calc-" aria-label="2" onclick="rimTeclaCalculadora('2')">2</button>
+          <button type="button" data-calc-tecla="3" class="rim-calc-" aria-label="3" onclick="rimTeclaCalculadora('3')">3</button>
+          <button type="button" data-calc-tecla="+" class="rim-calc-operador" aria-label="Sumar" onclick="rimTeclaCalculadora('+')">+</button>
+          <button type="button" data-calc-tecla="borrar" class="rim-calc-funcion" aria-label="Borrar último dígito" onclick="rimTeclaCalculadora('borrar')">⌫</button>
+          <button type="button" data-calc-tecla="0" class="rim-calc-" aria-label="0" onclick="rimTeclaCalculadora('0')">0</button>
+          <button type="button" data-calc-tecla="." class="rim-calc-" aria-label="Separador decimal" onclick="rimTeclaCalculadora('.')">,</button>
+          <button type="button" data-calc-tecla="=" class="rim-calc-igual" aria-label="Igual" onclick="rimTeclaCalculadora('=')">=</button>
+      </div>
+      <button type="button" id="rim-calc-cambio" class="rim-calc-cambio" onclick="rimTeclaCalculadora('bcv')" disabled>Convertir USD → Bs.</button>
+      <p class="rim-calc-ayuda">Admite teclado · Enter para calcular · Esc para cerrar</p>
+    </div>
+  </dialog>
 
   <div id="rim-modal-confirmar" role="dialog" aria-modal="true" aria-labelledby="rim-titulo-confirmar" class="hidden fixed inset-0 z-[70] bg-slate-950/70 flex items-center justify-center p-3">
     <section class="rim-modal-contenido bg-white rounded-2xl w-full max-w-lg p-5 shadow-xl">
@@ -1319,6 +1378,146 @@
 
       widget.addEventListener('mousedown', onPointerDown);
       widget.addEventListener('touchstart', onPointerDown, { passive: true });
+    }
+
+    var rimCalc = { entrada: '0', acumulado: null, operador: null, nueva: false, ultimo: null, operando: null, error: false, detalle: '', bolivares: false };
+    var rimCalcTasa = null;
+    var rimCalcConsulta = 0;
+
+    function rimNumeroCalculadora(valor) {
+      if (!Number.isFinite(valor)) throw new Error('El resultado está fuera de rango');
+      return String(Number(valor.toPrecision(12)));
+    }
+
+    function rimOperacionCalculadora(a, b, operador) {
+      if (operador === '+') return a + b;
+      if (operador === '-') return a - b;
+      if (operador === '*') return a * b;
+      if (b === 0) throw new Error('No se puede dividir entre cero');
+      return a / b;
+    }
+
+    function rimTeclaCalculadora(tecla) {
+      var c = rimCalc;
+      if (tecla === 'AC') {
+        rimCalc = { entrada: '0', acumulado: null, operador: null, nueva: false, ultimo: null, operando: null, error: false, detalle: '', bolivares: false };
+        rimRenderizarCalculadora();
+        return;
+      }
+      if (c.error) {
+        if (!/^[0-9.]$/.test(tecla) && tecla !== 'borrar') return;
+        rimTeclaCalculadora('AC');
+        c = rimCalc;
+      }
+      try {
+        if (/^[0-9.]$/.test(tecla)) {
+          if (c.nueva) { c.entrada = '0'; c.nueva = false; }
+          if (!c.operador) { c.acumulado = null; c.ultimo = null; c.operando = null; c.detalle = ''; }
+          if (tecla === '.') {
+            if (c.entrada.indexOf('.') < 0) c.entrada += '.';
+          } else if (c.entrada.replace(/[^0-9]/g, '').length < 14) {
+            c.entrada = c.entrada === '0' ? tecla : c.entrada === '-0' ? '-' + tecla : c.entrada + tecla;
+          }
+          c.bolivares = false;
+        } else if (tecla === 'borrar') {
+          c.entrada = c.nueva ? '0' : c.entrada.slice(0, -1);
+          if (!c.entrada || c.entrada === '-') c.entrada = '0';
+          c.nueva = false; c.ultimo = null; c.operando = null; c.bolivares = false;
+        } else if (tecla === 'signo') {
+          if (Number(c.entrada) !== 0) c.entrada = c.entrada.charAt(0) === '-' ? c.entrada.slice(1) : '-' + c.entrada;
+        } else if (tecla === '%') {
+          var porcentaje = Number(c.entrada) / 100;
+          if (c.operador === '+' || c.operador === '-') porcentaje *= c.acumulado;
+          c.entrada = rimNumeroCalculadora(porcentaje);
+          c.nueva = false; c.ultimo = null;
+        } else if (['+', '-', '*', '/'].indexOf(tecla) >= 0) {
+          if (c.operador && !c.nueva) c.entrada = rimNumeroCalculadora(rimOperacionCalculadora(c.acumulado, Number(c.entrada), c.operador));
+          c.acumulado = Number(c.entrada); c.operador = tecla; c.nueva = true; c.ultimo = null;
+          c.detalle = c.entrada + ' ' + ({'*':'×', '/':'÷', '-':'−', '+':'+'}[tecla]);
+        } else if (tecla === '=') {
+          var operador = c.operador || c.ultimo;
+          if (operador) {
+            var segundo = c.operador ? Number(c.entrada) : c.operando;
+            var primero = c.operador ? c.acumulado : Number(c.entrada);
+            c.entrada = rimNumeroCalculadora(rimOperacionCalculadora(primero, segundo, operador));
+            c.detalle = primero + ' ' + ({'*':'×','/':'÷','-':'−','+':'+'}[operador]) + ' ' + segundo + ' =';
+            c.ultimo = operador; c.operando = segundo;
+          }
+          c.operador = null; c.acumulado = null; c.nueva = true;
+        } else if (tecla === 'bcv') {
+          if (!rimCalcTasa || c.bolivares) return;
+          var usd = Number(c.entrada);
+          c.entrada = rimNumeroCalculadora(usd * rimCalcTasa);
+          c.detalle = 'USD ' + usd + ' × BCV ' + rimCalcTasa;
+          c.bolivares = true; c.nueva = true;
+          c.operador = null; c.acumulado = null; c.ultimo = null; c.operando = null;
+        }
+      } catch (err) {
+        c.error = true; c.detalle = err.message; c.entrada = 'Error';
+      }
+      rimRenderizarCalculadora();
+    }
+
+    function rimRenderizarCalculadora() {
+      var c = rimCalc;
+      document.getElementById('rim-calc-valor').textContent = c.entrada.replace('.', ',');
+      document.getElementById('rim-calc-operacion').textContent = c.detalle;
+      var conversion = document.getElementById('rim-calc-conversion');
+      document.getElementById('rim-calc-cambio').disabled = !rimCalcTasa || c.error || c.bolivares;
+      if (c.error || !rimCalcTasa) conversion.textContent = '';
+      else if (c.bolivares) conversion.textContent = 'Resultado en bolívares';
+      else {
+        var bs = Number(c.entrada) * rimCalcTasa;
+        conversion.textContent = Number.isFinite(bs) ? 'Si el valor es USD: Bs. ' + bs.toLocaleString('es-VE', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
+      }
+    }
+
+    async function rimConsultarTasaCalculadora() {
+      var consulta = ++rimCalcConsulta;
+      rimCalcTasa = null;
+      var estado = document.getElementById('rim-calc-tasa');
+      var boton = document.getElementById('rim-calc-refrescar');
+      estado.textContent = 'Consultando tasa oficial…';
+      boton.disabled = true;
+      rimRenderizarCalculadora();
+      try {
+        var respuesta = await rimRpc('obtenerTasaBCVOficial', [], true);
+        if (consulta !== rimCalcConsulta) return;
+        var tasa = Number(respuesta && respuesta.tasa);
+        if (!respuesta || !respuesta.exito || !Number.isFinite(tasa) || tasa <= 0) throw new Error('Tasa no disponible');
+        rimCalcTasa = tasa;
+        estado.textContent = 'BCV · Bs. ' + tasa.toLocaleString('es-VE', {minimumFractionDigits:2, maximumFractionDigits:6}) + ' / USD';
+      } catch (err) {
+        if (consulta !== rimCalcConsulta) return;
+        estado.textContent = 'No se pudo consultar la tasa. Reintenta.';
+      } finally {
+        if (consulta === rimCalcConsulta) { boton.disabled = false; rimRenderizarCalculadora(); }
+      }
+    }
+
+    function rimAbrirCalculadora(evento) {
+      if (evento) evento.stopPropagation();
+      if (bcvFueArrastrado) { bcvFueArrastrado = false; return; }
+      var dialogo = document.getElementById('rim-calculadora');
+      if (dialogo.open) return;
+      dialogo.showModal();
+      rimRenderizarCalculadora();
+      rimConsultarTasaCalculadora();
+    }
+
+    function rimTecladoCalculadora(evento) {
+      if (evento.ctrlKey || evento.metaKey || evento.altKey || evento.key === 'Escape' || evento.key === 'Tab') return;
+      var tecla = evento.key;
+      if (tecla === 'Enter' && evento.target.tagName === 'BUTTON' && !evento.target.hasAttribute('data-calc-tecla')) return;
+      if (/^[0-9.+*/%=-]$/.test(tecla)) { /* Tecla de calculadora. */ }
+      else if (tecla === ',') tecla = '.';
+      else if (tecla === 'Enter') tecla = '=';
+      else if (tecla === 'Backspace') tecla = 'borrar';
+      else if (tecla === 'Delete') tecla = 'AC';
+      else return;
+      evento.preventDefault();
+      document.getElementById('rim-calc-valor').focus({preventScroll:true});
+      rimTeclaCalculadora(tecla);
     }
 
     function modificarTasaBCVManual() {
