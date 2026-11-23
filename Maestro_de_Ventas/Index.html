@@ -2505,14 +2505,38 @@
     }
 
     function clicNotificacionVentas(idx, ticket) {
-      if (notificacionesVentas[idx]) {
-        notificacionesVentas[idx].leido = true;
-      }
+      if (!rimNecesitaSesion()) return;
+      var notificacion = notificacionesVentas[idx];
+      if (!notificacion) return;
+      ticket = notificacion.ticket || ticket;
+      notificacion.leido = true;
       actualizarBadgeCampanaVentas();
       renderizarDropdownNotificacionesVentas();
       var drop = document.getElementById('dropdown-notif-ventas');
       if (drop) drop.classList.add('hidden');
-      abrirModalComentarios(ticket);
+      if (notificacion.tipo === 'estado') {
+        rimAbrirSeguimientoTicket(ticket);
+      } else if (notificacion.tipo === 'comentario') {
+        abrirModalComentarios(ticket);
+      }
+    }
+
+    function rimAbrirSeguimientoTicket(ticket) {
+      var pedido = misTicketsSeguimiento.find(function(t) { return t.ticket === ticket; });
+      cerrarModalComentarios();
+      cerrarOtrosDrawers('drawer-mis-pedidos');
+      document.getElementById('drawer-mis-pedidos').classList.remove('translate-x-full');
+      document.getElementById('busqueda-mis-pedidos').value = ticket;
+      cambiarFiltroEtapaSeguimiento(pedido ? normalizarClaveEstado(pedido.estado) : 'TODOS');
+      var tarjeta = document.getElementById('seguimiento-ticket-' + ticket);
+      if (tarjeta) {
+        tarjeta.focus({ preventScroll: true });
+        tarjeta.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        var tab = document.getElementById('tab-etapa-' + etapaSeguimientoActiva);
+        if (tab) tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      } else {
+        mostrarToast('El ticket no aparece en el seguimiento actual. Usa Actualizar estatus para volver a consultarlo.');
+      }
     }
 
     function marcarTodasNotifLeidas() {
@@ -2591,7 +2615,7 @@
         }).join('');
 
         html += 
-          '<div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2">' +
+          '<div id="seguimiento-ticket-' + rimTextoSeguro(t.ticket) + '" tabindex="-1" class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2 focus:outline focus:outline-2 focus:outline-sky-500">' +
             '<div class="flex items-center justify-between">' +
               '<div class="flex items-center gap-1.5">' +
                 '<span class="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">' + t.ticket + '</span>' +
