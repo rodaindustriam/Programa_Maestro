@@ -224,6 +224,64 @@
     .rim-panel-punto { width:.5rem; height:.5rem; flex:none; border-radius:50%; background:#078453; box-shadow:0 0 0 3px #07845320; }
     .rim-panel-pie { display:flex; align-items:center; justify-content:space-between; gap:.5rem; flex-wrap:wrap; }
     @media (max-width:680px) { .rim-panel-columnas { grid-template-columns:minmax(0,1fr); } }
+    #rim-panel-ventas { width:min(1120px,calc(100% - 24px)); }
+    #rim-panel-ventas .rim-panel-equipo { padding:0; overflow:hidden; }
+    .rim-equipo-cab { padding:20px 22px 15px; display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .rim-equipo-cab h3 { margin:0 0 5px; }
+    .rim-equipo-cab p { max-width:640px; line-height:1.6; }
+    .rim-equipo-presencia { padding:12px 22px; border-top:1px solid #e4ebf3; background:#f8fafc; display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+    .rim-equipo-presencia > span { font-size:11px; font-weight:700; color:#536780; }
+    #rim-panel-activos { display:flex; flex-wrap:wrap; gap:8px; }
+    .rim-supervision { display:inline-flex; align-items:center; gap:7px; font-size:11px; padding:6px 10px; border:1px solid #dce7e2; border-radius:7px; background:#fff; color:#334b46; }
+    .rim-tabla-scroll { overflow-x:auto; }
+    #rim-panel-ventas .rim-equipo-tabla { width:100%; min-width:860px; table-layout:fixed; margin:0; border-collapse:collapse; }
+    #rim-panel-ventas .rim-equipo-tabla thead th { padding:13px 16px; background:#f8fafc; font-size:10px; font-weight:700; color:#536780; letter-spacing:.05em; text-transform:uppercase; text-align:left; border-block:1px solid #e4ebf3; vertical-align:middle; }
+    #rim-panel-ventas .rim-equipo-tabla tbody th, #rim-panel-ventas .rim-equipo-tabla tbody td { padding:17px 16px; border-top:1px solid #e8edf4; vertical-align:middle; font-size:12px; text-align:left; }
+    #rim-panel-ventas .rim-equipo-tabla .rim-col-num { text-align:center; font-variant-numeric:tabular-nums; }
+    .rim-vendedor-identidad { display:flex; align-items:center; gap:11px; }
+    .rim-vendedor-avatar { position:relative; display:grid; place-items:center; width:34px; height:34px; flex:none; background:#eaf0f9; border:1px solid #dce5f3; border-radius:50%; font-size:11px; color:#3b5379; font-weight:800; }
+    .rim-vendedor-avatar::after { content:''; position:absolute; right:-1px; bottom:0; width:9px; height:9px; background:#c6d1df; border:2px solid white; border-radius:50%; }
+    .rim-vendedor-avatar.en-linea::after { background:#059669; }
+    .rim-vendedor-nombre { display:block; font-size:12px; font-weight:750; color:#182d48; line-height:1.45; overflow-wrap:anywhere; }
+    .rim-vendedor-area { display:block; font-weight:400; font-size:10px; color:#64748b; margin-top:2px; }
+    .rim-sesion { display:inline-flex; align-items:center; gap:6px; border:1px solid #b6e5d3; background:#effaf5; padding:5px 8px; border-radius:20px; font-size:10px; color:#07694b; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .rim-sesion::before { content:''; width:5px; height:5px; background:#059669; border-radius:50%; }
+    .rim-sin-conexion { color:#64748b; font-size:10px; line-height:1.5; }
+    .rim-estados-lista { display:flex; flex-wrap:wrap; gap:5px; }
+    .rim-estado-pill { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--rim-borde,#d5dee9); border-radius:5px; background:var(--rim-fondo,#f8fafc); color:var(--rim-tinta,#475569); padding:4px 7px; font-size:10px; line-height:1.35; white-space:nowrap; }
+    .rim-estado-pill::before { content:''; width:5px; height:5px; flex:none; border-radius:50%; background:currentColor; }
+    .rim-estado-pill strong { padding-left:6px; border-left:1px solid var(--rim-borde,#d5dee9); font-variant-numeric:tabular-nums; }
+    .rim-est-pendiente { --rim-borde:#f2db9f; --rim-fondo:#fffaf0; --rim-tinta:#925500; }
+    .rim-est-orden_compra { --rim-borde:#b7dff6; --rim-fondo:#f1f9ff; --rim-tinta:#066b9a; }
+    .rim-est-en_transito { --rim-borde:#d7cef6; --rim-fondo:#f5f2ff; --rim-tinta:#6746b5; }
+    .rim-est-recibido { --rim-borde:#b7e7d6; --rim-fondo:#effbf5; --rim-tinta:#08754e; }
+    .rim-est-rechazado_devolucion { --rim-borde:#f0c4cb; --rim-fondo:#fff3f4; --rim-tinta:#aa3349; }
+    .rim-est-mixto { --rim-borde:#cbd5e1; --rim-fondo:#f1f5f9; --rim-tinta:#475569; }
+    .rim-total-abiertos { display:inline-grid; place-items:center; min-width:28px; height:28px; padding:0 7px; background:#edf2f7; border-radius:7px; color:#283e57; font-size:12px; font-weight:800; }
+    .rim-total-abiertos.con-pedidos { background:#172b43; color:white; }
+    .rim-sin-pedidos { color:#64748b; font-size:11px; font-weight:400; }
+    .rim-boton-detalle { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:6px 9px; border:1px solid #d6e0ed; border-radius:7px; color:#354d6d; font-size:10px; font-weight:650; background:white; white-space:nowrap; }
+    .rim-boton-detalle:hover { background:#f0f6fc; border-color:#9ab6d8; }
+    .rim-boton-detalle:focus-visible { outline:2px solid #0284c7; outline-offset:2px; }
+    .rim-boton-detalle[aria-expanded="true"] { background:#edf4fb; }
+    .rim-boton-detalle span { display:inline-block; transition:transform .15s; }
+    .rim-boton-detalle[aria-expanded="true"] span { transform:rotate(180deg); }
+    #rim-panel-ventas .rim-equipo-tabla .rim-fila-detalle td { padding:14px 22px 18px; background:#f7f9fc; }
+    .rim-ticket-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(225px,1fr)); gap:9px; list-style:none; padding:0; margin:0; }
+    .rim-ticket-resumen { background:#fff; border:1px solid #dee6f0; border-radius:8px; padding:11px 12px; }
+    .rim-ticket-resumen > div { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .rim-ticket-resumen b { font-family:monospace; font-size:11px; color:#2b405d; }
+    .rim-ticket-resumen p { margin:7px 0 0; font-size:11px; color:#64748b; overflow-wrap:anywhere; }
+    #rim-panel-ventas [hidden] { display:none!important; }
+    #rim-panel-ventas .rim-panel-cerrar { background:transparent; }
+    @media(max-width:680px) {
+      .rim-equipo-cab,.rim-equipo-presencia { padding:14px; }
+      .rim-panel-cuerpo { gap:12px; }
+      #rim-panel-ventas .rim-panel-resumen { grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
+      #rim-panel-ventas .rim-panel-resumen div { padding:10px; }
+      #rim-panel-ventas .rim-panel-resumen dt { font-size:10px; min-height:28px; }
+      #rim-panel-ventas .rim-panel-resumen dd { font-size:23px; }
+    }
   </style>
 </head>
 <body class="text-slate-800 antialiased pb-28">
@@ -397,24 +455,25 @@
         <div><dt>Cotizaciones de ventas</dt><dd id="rim-panel-total-cotizaciones">—</dd></div>
         <div><dt>Pedidos abiertos</dt><dd id="rim-panel-total-pedidos">—</dd></div>
       </dl>
-      <div class="rim-panel-columnas">
-        <section class="rim-panel-tarjeta" aria-labelledby="rim-panel-presencia">
-          <h3 id="rim-panel-presencia">Equipo en línea</h3>
-          <p>Con actividad de conexión en los últimos 2 minutos.</p>
-          <table aria-labelledby="rim-panel-presencia">
-            <thead><tr><th scope="col">Perfil</th><th scope="col" class="rim-panel-num">Tiempo en sesión</th></tr></thead>
-            <tbody id="rim-panel-activos"></tbody>
-          </table>
-        </section>
-        <section class="rim-panel-tarjeta" aria-labelledby="rim-panel-actividad">
-          <h3 id="rim-panel-actividad">Actividad por vendedor</h3>
-          <p id="rim-panel-rango-aplicado" aria-live="polite">Cotizaciones de hoy y pedidos abiertos acumulados · Caracas</p>
-          <table aria-labelledby="rim-panel-actividad">
-            <thead><tr><th scope="col">Vendedor</th><th scope="col" class="rim-panel-num">Cotizaciones</th><th scope="col" class="rim-panel-num">Abiertos</th></tr></thead>
+      <section class="rim-panel-tarjeta rim-panel-equipo" aria-labelledby="rim-panel-actividad">
+        <div class="rim-equipo-cab">
+          <div>
+            <h3 id="rim-panel-actividad">Actividad del equipo</h3>
+            <p id="rim-panel-rango-aplicado" aria-live="polite">Cotizaciones de hoy y pedidos abiertos acumulados · Caracas</p>
+          </div>
+        </div>
+        <div class="rim-equipo-presencia">
+          <span>Supervisión en línea</span>
+          <div id="rim-panel-activos"></div>
+        </div>
+        <div class="rim-tabla-scroll" role="region" aria-label="Actividad por vendedor, desplazable horizontalmente" tabindex="0">
+          <table class="rim-equipo-tabla" aria-labelledby="rim-panel-actividad">
+            <colgroup><col style="width:22%"><col style="width:15%"><col style="width:10%"><col style="width:29%"><col style="width:11%"><col style="width:13%"></colgroup>
+            <thead><tr><th scope="col">Vendedor / Área</th><th scope="col">Sesión actual</th><th scope="col" class="rim-col-num">Cotizaciones</th><th scope="col">Pedidos por estado</th><th scope="col" class="rim-col-num">Abiertos</th><th scope="col" class="rim-col-num">Detalle</th></tr></thead>
             <tbody id="rim-panel-vendedores"></tbody>
           </table>
-        </section>
-      </div>
+        </div>
+      </section>
       <footer class="rim-panel-pie">
         <p class="rim-panel-estado" id="rim-panel-estado" role="status"></p>
         <button type="button" id="rim-panel-recargar" onclick="rimActualizarPanelVentas()" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold">Actualizar</button>
@@ -2822,6 +2881,7 @@
     function rimReiniciarPeriodoVentas() {
       rimPanelRevision++;
       rimPanelFiltros = { periodo: 'hoy' };
+      rimPanelDetallesAbiertos.clear();
       document.getElementById('rim-panel-periodo').value = 'hoy';
       document.getElementById('rim-panel-personalizado').hidden = true;
       ['desde', 'hasta'].forEach(function(limite) {
@@ -2914,27 +2974,71 @@
       });
     }
 
+    var rimPanelDetallesAbiertos = new Set();
+
+    function rimEtiquetaEstadoPanel(estado) {
+      var etiquetas = {
+        PENDIENTE: 'Pendiente', ORDEN_COMPRA: 'Emitiendo O.C.', EN_TRANSITO: 'En tránsito',
+        RECIBIDO: 'Recibido en almacén', RECHAZADO_DEVOLUCION: 'Rechazado / Devolución', MIXTO: 'Estados mixtos'
+      };
+      return etiquetas[estado] || String(estado);
+    }
+
+    function rimPillEstadoPanel(estado, cantidad) {
+      var conocidos = ['PENDIENTE', 'ORDEN_COMPRA', 'EN_TRANSITO', 'RECIBIDO', 'RECHAZADO_DEVOLUCION', 'MIXTO'];
+      var clase = conocidos.indexOf(estado) >= 0 ? ' rim-est-' + estado.toLowerCase() : '';
+      return '<span class="rim-estado-pill' + clase + '">' + rimTextoSeguro(rimEtiquetaEstadoPanel(estado)) +
+        (cantidad == null ? '' : '<strong>' + Number(cantidad) + '</strong>') + '</span>';
+    }
+
     function rimResumenPedidosPanel(v) {
-      if (!v.pedidos) return '';
-      var estados = v.estados || {}, tickets = v.tickets || [];
+      if (!v.pedidos) return '<span class="rim-sin-pedidos">Sin pedidos abiertos</span>';
+      var estados = v.estados || {};
       var orden = ['PENDIENTE', 'ORDEN_COMPRA', 'EN_TRANSITO', 'RECIBIDO', 'RECHAZADO_DEVOLUCION', 'MIXTO'];
-      function etiqueta(estado) {
-        return estado === 'MIXTO' ? 'Estados mixtos' : formatearNombreEstado(estado);
-      }
       var claves = Object.keys(estados).sort(function(a, b) {
         var ia = orden.indexOf(a), ib = orden.indexOf(b);
         return (ia < 0 ? orden.length : ia) - (ib < 0 ? orden.length : ib);
       });
-      var resumen = claves.map(function(estado) {
-        return '<span class="inline-block rounded px-2 py-1 text-xs ' + obtenerColorBadgeEstado(estado) + '">' +
-          rimTextoSeguro(etiqueta(estado)) + ' <strong>' + Number(estados[estado]) + '</strong></span>';
-      }).join(' ');
-      var detalle = tickets.map(function(t) {
-        return '<li class="py-1 border-t border-slate-100"><strong>' + rimTextoSeguro(t.ticket) + '</strong> · ' +
-          rimTextoSeguro(etiqueta(t.estado)) + (t.cliente ? '<br>' + rimTextoSeguro(t.cliente) : '') + '</li>';
+      return '<div class="rim-estados-lista">' + claves.map(function(estado) {
+        return rimPillEstadoPanel(estado, estados[estado]);
+      }).join('') + '</div>';
+    }
+
+    function rimAlternarDetalleVendedor(boton) {
+      var detalle = document.getElementById(boton.getAttribute('aria-controls'));
+      if (!detalle) return;
+      var abrir = boton.getAttribute('aria-expanded') !== 'true';
+      boton.setAttribute('aria-expanded', String(abrir));
+      detalle.hidden = !abrir;
+      if (abrir) rimPanelDetallesAbiertos.add(boton.dataset.vendedor);
+      else rimPanelDetallesAbiertos.delete(boton.dataset.vendedor);
+    }
+
+    function rimFilaVendedorPanel(v, indice, perfiles) {
+      var perfil = perfiles.find(function(p) { return p.nombre === v.nombre && p.rol === 'vendedor'; });
+      var nombre = String(v.nombre || '');
+      var corto = nombre.replace(/\s*\([^)]*\)/g, '').trim();
+      var iniciales = corto.split(/\s+/).slice(0, 2).map(function(parte) { return parte.charAt(0); }).join('').toUpperCase();
+      var area = nombre.match(/\(([^)]+)\)/);
+      var identidad = '<div class="rim-vendedor-identidad"><span class="rim-vendedor-avatar' + (perfil ? ' en-linea' : '') +
+        '" aria-hidden="true">' + rimTextoSeguro(iniciales) + '</span><span><span class="rim-vendedor-nombre">' +
+        rimTextoSeguro(corto || nombre) + '</span><span class="rim-vendedor-area">' + rimTextoSeguro(area ? area[1] : 'Ventas') + '</span></span></div>';
+      var sesion = perfil ? '<span class="rim-sesion" title="Tiempo desde el inicio de sesión">' + rimTextoSeguro(rimDuracionSesion(perfil.segundos)) +
+        '</span>' : '<span class="rim-sin-conexion">Sin conexión<br>reciente</span>';
+      var abierto = rimPanelDetallesAbiertos.has(nombre);
+      var id = 'rim-panel-detalle-' + indice;
+      var accion = v.pedidos ? '<button type="button" class="rim-boton-detalle" aria-label="Ver pedidos de ' + rimTextoSeguro(nombre) +
+        '" aria-expanded="' + abierto + '" aria-controls="' + id + '" data-vendedor="' + rimTextoSeguro(nombre) +
+        '" onclick="rimAlternarDetalleVendedor(this)">Ver (' + Number(v.pedidos) + ') <span aria-hidden="true">⌄</span></button>' : '<span class="rim-sin-pedidos">—</span>';
+      var fila = '<tr><th scope="row">' + identidad + '</th><td>' + sesion + '</td><td class="rim-col-num">' + Number(v.cotizaciones) +
+        '</td><td>' + rimResumenPedidosPanel(v) + '</td><td class="rim-col-num"><span class="rim-total-abiertos' + (v.pedidos ? ' con-pedidos' : '') +
+        '">' + Number(v.pedidos) + '</span></td><td class="rim-col-num">' + accion + '</td></tr>';
+      if (!v.pedidos) return fila;
+      var tickets = (v.tickets || []).map(function(t) {
+        return '<li class="rim-ticket-resumen"><div><b>' + rimTextoSeguro(t.ticket) + '</b>' + rimPillEstadoPanel(t.estado) +
+          '</div><p>' + rimTextoSeguro(t.cliente || 'Cliente sin registrar') + '</p></li>';
       }).join('');
-      return '<div class="mt-2 flex flex-wrap gap-1">' + resumen + '</div><details class="mt-2 text-xs font-normal">' +
-        '<summary class="cursor-pointer text-sky-900">Ver ' + Number(v.pedidos) + ' pedidos</summary><ul class="mt-1">' + detalle + '</ul></details>';
+      return fila + '<tr id="' + id + '" class="rim-fila-detalle"' + (abierto ? '' : ' hidden') + '><td colspan="6"><ul class="rim-ticket-grid">' + tickets + '</ul></td></tr>';
     }
 
     async function rimActualizarPanelVentas() {
@@ -2950,18 +3054,27 @@
         var rango = datos.rango;
         function fechaCorta(dia) { return dia.split('-').reverse().join('/'); }
         document.getElementById('rim-panel-rango-aplicado').textContent =
-          (rango.desde === rango.hasta ? fechaCorta(rango.desde) : fechaCorta(rango.desde) + ' – ' + fechaCorta(rango.hasta)) + ' · Cotizaciones del período; abiertos acumulados al ' + fechaCorta(rango.hasta) + ' · Estado actual';
+          'Cotizaciones: ' + (rango.desde === rango.hasta ? fechaCorta(rango.desde) : fechaCorta(rango.desde) + ' – ' + fechaCorta(rango.hasta)) + ' · Pedidos abiertos al ' + fechaCorta(rango.hasta) + ' · Estados actuales';
         var perfiles = datos.perfiles, vendedores = datos.vendedores;
-        var etiquetas = { propietario: 'Propietario / Administración', supervisora: 'Supervisión / Dirección', vendedor: 'Ventas' };
-        document.getElementById('rim-panel-activos').innerHTML = perfiles.length ? perfiles.map(function(p) {
-          return '<tr><th scope="row"><span class="rim-panel-perfil"><span class="rim-panel-punto" aria-hidden="true"></span>' +
-            rimTextoSeguro(p.nombre) + '</span><span class="text-xs font-normal text-slate-600">' + rimTextoSeguro(etiquetas[p.rol] || p.rol) +
-            '</span></th><td class="rim-panel-num">' + rimTextoSeguro(rimDuracionSesion(p.segundos)) + '</td></tr>';
-        }).join('') : '<tr><td colspan="2">No hay perfiles en línea.</td></tr>';
-        document.getElementById('rim-panel-vendedores').innerHTML = vendedores.length ? vendedores.map(function(v) {
-          return '<tr><th scope="row">' + rimTextoSeguro(v.nombre) + rimResumenPedidosPanel(v) + '</th><td class="rim-panel-num">' + Number(v.cotizaciones) +
-            '</td><td class="rim-panel-num">' + Number(v.pedidos) + '</td></tr>';
-        }).join('') : '<tr><td colspan="3">No hay vendedores registrados.</td></tr>';
+        var supervision = perfiles.filter(function(p) { return p.rol !== 'vendedor'; });
+        document.getElementById('rim-panel-activos').innerHTML = supervision.length ? supervision.map(function(p) {
+          return '<span class="rim-supervision"><span class="rim-panel-punto" aria-hidden="true"></span>' +
+            rimTextoSeguro(p.nombre) + ' · ' + rimTextoSeguro(rimDuracionSesion(p.segundos)) + '</span>';
+        }).join('') : '<span class="rim-sin-conexion">Sin conexión reciente</span>';
+        // Conservar los detalles desplegados y el foco durante la actualización automática.
+        var foco = document.activeElement;
+        var vendedorEnFoco = foco && foco.classList.contains('rim-boton-detalle') ? foco.dataset.vendedor : null;
+        document.getElementById('rim-panel-vendedores').innerHTML = vendedores.length ? vendedores.map(function(v, indice) {
+          return rimFilaVendedorPanel(v, indice, perfiles);
+        }).join('') : '<tr><td colspan="6">No hay vendedores registrados.</td></tr>';
+        if (vendedorEnFoco) {
+          var botones = document.querySelectorAll('#rim-panel-vendedores .rim-boton-detalle');
+          Array.prototype.some.call(botones, function(boton) {
+            if (boton.dataset.vendedor !== vendedorEnFoco) return false;
+            boton.focus({preventScroll:true});
+            return true;
+          });
+        }
         document.getElementById('rim-panel-total-activos').textContent = perfiles.length;
         ['cotizaciones', 'pedidos'].forEach(function(tipo) {
           document.getElementById('rim-panel-total-' + tipo).textContent =
