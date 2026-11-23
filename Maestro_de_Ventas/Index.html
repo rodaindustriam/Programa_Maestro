@@ -324,7 +324,7 @@
       <div class="flex items-center gap-2">
         <div class="relative flex-1">
           <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-2.5 text-slate-400 text-xs"></i>
-          <input type="text" id="busqueda" oninput="filtrar()" placeholder="Buscar ítem, marca o referencia (ej. 6004, FSKG)..." class="w-full bg-black/35 text-white placeholder-slate-400 text-xs pl-9 pr-3 py-2.5 rounded-xl border border-white/10 focus:outline-none focus:border-[#007fe0] focus:bg-black/50 transition-all font-medium">
+          <input type="text" id="busqueda" oninput="filtrar(false, 'texto')" placeholder="Buscar ítem, marca o referencia (ej. 6004, FSKG)..." class="w-full bg-black/35 text-white placeholder-slate-400 text-xs pl-9 pr-3 py-2.5 rounded-xl border border-white/10 focus:outline-none focus:border-[#007fe0] focus:bg-black/50 transition-all font-medium">
         </div>
         <button onclick="togglePanelMedidas()" id="btn-toggle-medidas" class="bg-white/10 hover:bg-white/20 border border-white/15 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm">
           <i class="fa-solid fa-ruler-combined text-slate-200 text-xs"></i>
@@ -336,15 +336,15 @@
       <div id="panel-medidas" class="hidden mt-2 p-3 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 grid grid-cols-3 gap-2 shadow-inner">
         <div>
           <label class="block text-[9px] uppercase font-bold text-slate-300 mb-1">d (Interna mm)</label>
-          <input type="number" id="f-d" oninput="filtrar()" placeholder="Ej. 20" class="w-full bg-white/10 text-white text-xs p-2 rounded-lg border border-white/15 text-center font-mono focus:border-[#007fe0] focus:outline-none">
+          <input type="number" min="0" step="any" id="f-d" onkeydown="if (event.key === '-') event.preventDefault()" oninput="filtrar(false, 'medidas')" placeholder="Ej. 20" class="w-full bg-white/10 text-white text-xs p-2 rounded-lg border border-white/15 text-center font-mono focus:border-[#007fe0] focus:outline-none">
         </div>
         <div>
           <label class="block text-[9px] uppercase font-bold text-slate-300 mb-1">D (Externa mm)</label>
-          <input type="number" id="f-ext" oninput="filtrar()" placeholder="Ej. 42" class="w-full bg-white/10 text-white text-xs p-2 rounded-lg border border-white/15 text-center font-mono focus:border-[#007fe0] focus:outline-none">
+          <input type="number" min="0" step="any" id="f-ext" onkeydown="if (event.key === '-') event.preventDefault()" oninput="filtrar(false, 'medidas')" placeholder="Ej. 42" class="w-full bg-white/10 text-white text-xs p-2 rounded-lg border border-white/15 text-center font-mono focus:border-[#007fe0] focus:outline-none">
         </div>
         <div>
           <label class="block text-[9px] uppercase font-bold text-slate-300 mb-1">B (Ancho mm)</label>
-          <input type="number" id="f-b" oninput="filtrar()" placeholder="Ej. 12" class="w-full bg-white/10 text-white text-xs p-2 rounded-lg border border-white/15 text-center font-mono focus:border-[#007fe0] focus:outline-none">
+          <input type="number" min="0" step="any" id="f-b" onkeydown="if (event.key === '-') event.preventDefault()" oninput="filtrar(false, 'medidas')" placeholder="Ej. 12" class="w-full bg-white/10 text-white text-xs p-2 rounded-lg border border-white/15 text-center font-mono focus:border-[#007fe0] focus:outline-none">
         </div>
       </div>
 
@@ -1066,7 +1066,11 @@
 
     function togglePanelMedidas() {
       var pan = document.getElementById('panel-medidas');
-      if (pan) pan.classList.toggle('hidden');
+      if (!pan) return;
+      if (pan.classList.toggle('hidden')) {
+        rimLimpiarMedidas();
+        filtrar(true);
+      }
     }
 
     // ==========================================
@@ -1272,20 +1276,47 @@
       });
     }
 
-    function filtrar(inmediato) {
+    function rimLimpiarMedidas() {
+      ['f-d', 'f-ext', 'f-b'].forEach(function(id) {
+        document.getElementById(id).value = '';
+      });
+    }
+
+    function rimLeerMedida(id) {
+      var campo = document.getElementById(id);
+      if (!campo || campo.value.trim() === '') return null;
+      var valor = Number(campo.value);
+      if (!Number.isFinite(valor)) {
+        campo.value = '';
+        return null;
+      }
+      if (valor < 0) {
+        campo.value = '0';
+        return 0;
+      }
+      return valor;
+    }
+
+    function filtrar(inmediato, origen) {
+      if (origen === 'texto') {
+        rimLimpiarMedidas();
+      } else if (origen === 'medidas') {
+        document.getElementById('busqueda').value = '';
+      }
+      ['f-d', 'f-ext', 'f-b'].forEach(rimLeerMedida);
+      clearTimeout(debounceTimer);
       if (inmediato) {
         ejecutarFiltro();
       } else {
-        clearTimeout(debounceTimer);
         debounceTimer = setTimeout(ejecutarFiltro, 120);
       }
     }
 
     function ejecutarFiltro() {
       var q = (document.getElementById('busqueda') ? document.getElementById('busqueda').value : "").toLowerCase().trim();
-      var fD = parseFloat(document.getElementById('f-d') ? document.getElementById('f-d').value : null) || null;
-      var fExt = parseFloat(document.getElementById('f-ext') ? document.getElementById('f-ext').value : null) || null;
-      var fB = parseFloat(document.getElementById('f-b') ? document.getElementById('f-b').value : null) || null;
+      var fD = rimLeerMedida('f-d');
+      var fExt = rimLeerMedida('f-ext');
+      var fB = rimLeerMedida('f-b');
 
       var tokens = q ? q.split(/\s+/) : [];
       var nTokens = tokens.length;
@@ -2240,7 +2271,7 @@
                 '<span class="text-[10px] text-amber-700 ml-2 font-mono">(' + itemObj.cant + ' unid.)</span>' +
                 '<span class="text-[9px] font-bold bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded ml-1.5">No localizado exacto</span>' +
               '</div>' +
-              '<button type="button" onclick="document.getElementById(\'busqueda\').value=\'' + rimArgumentoHtml(itemObj.solicitado) + '\'; filtrar(true); cerrarModalIA();" class="text-[10px] font-bold text-indigo-600 hover:underline">' +
+              '<button type="button" onclick="document.getElementById(\'busqueda\').value=\'' + rimArgumentoHtml(itemObj.solicitado) + '\'; filtrar(true, \'texto\'); cerrarModalIA();" class="text-[10px] font-bold text-indigo-600 hover:underline">' +
                 'Buscar en catálogo' +
               '</button>' +
             '</div>';

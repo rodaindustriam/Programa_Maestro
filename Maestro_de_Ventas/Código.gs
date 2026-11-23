@@ -102,9 +102,9 @@ function obtenerInventario() {
       lista.push({
         item: itemCodigo,
         marca: String(f[1] || ""),
-        med_interna: n(f[2]) || null,
-        med_externa: n(f[3]) || null,
-        ancho: n(f[4]) || null,
+        med_interna: f[2] == null || String(f[2]).trim() === '' ? null : n(f[2]),
+        med_externa: f[3] == null || String(f[3]).trim() === '' ? null : n(f[3]),
+        ancho: f[4] == null || String(f[4]).trim() === '' ? null : n(f[4]),
         otras_ref: String(f[5] || ""),
         descripcion: String(f[6] || ""),
         stock_maracay: n(f[cMaracay]),
