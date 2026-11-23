@@ -1,6 +1,6 @@
 // Presencia reciente. La sesión de Google se valida por separado.
 var RIM_PRESENCIA_SEGUNDOS_ = 120;
-var RIM_METRICAS_VENTAS_CACHE_ = 'RIM_METRICAS_VENTAS_V2';
+var RIM_METRICAS_VENTAS_CACHE_ = 'RIM_COTIZACIONES_PANEL_V3';
 
 function rimClavePresencia_(email) {
   return 'RIM_PRESENCIA_V1:' + rimHash_(email);
@@ -58,7 +58,7 @@ function rimFilasPanelVentas_(libro, nombre, ancho) {
 function rimMetricasVentas_(cache, rango) {
   var clave = RIM_METRICAS_VENTAS_CACHE_ + ':' + rango.desde + ':' + rango.hasta;
   var guardado = cache.get(clave);
-  if (guardado) return JSON.parse(guardado);
+  var cotizaciones = guardado ? JSON.parse(guardado) : null;
   var libro = obtenerLibroCentral_();
   var vendedores = Object.create(null), porNombre = Object.create(null);
   function normalizar(valor) { return String(valor == null ? '' : valor).trim().toLowerCase(); }
@@ -68,48 +68,65 @@ function rimMetricasVentas_(cache, rango) {
   Object.keys(RIM_VENDEDORES_).forEach(function(email) {
     var perfil = rimPerfil_(email);
     if (perfil.rol !== 'vendedor') return;
-    var fila = { nombre: perfil.nombre, cotizaciones: 0, pedidos: 0 };
+    var fila = { nombre: perfil.nombre, cotizaciones: cotizaciones ? Number(cotizaciones[email]) || 0 : 0,
+      pedidos: 0, estados: {}, tickets: [] };
     vendedores[email] = fila;
     porNombre[normalizar(perfil.nombre)] = fila;
   });
 
-  var folios = new Set();
-  rimFilasCotizaciones_().forEach(function(fila) {
-    var folio = normalizar(fila[0]);
-    if (!folio || folios.has(folio)) return;
-    var doc = rimDocumentoFila_(fila);
-    if (!rimFechaEnRangoPanel_(fila[1] || (doc && doc.fecha), rango)) return;
-    var responsable = vendedor(fila[11] || (doc && doc.emailVendedor), doc && doc.vendedor);
-    if (responsable) {
-      responsable.cotizaciones++;
-      folios.add(folio);
-    }
-  });
-
-  var tickets = new Map();
-  ['Solicitudes_Pedidos', 'Historico_Pedidos'].forEach(function(nombre) {
-    rimFilasPanelVentas_(libro, nombre, 5).forEach(function(fila) {
-      var ticket = normalizar(fila[0]);
-      if (ticket && (!tickets.has(ticket) || !tickets.get(ticket).nombre)) tickets.set(ticket, { nombre: fila[4], fecha: fila[2] });
+  if (!cotizaciones) {
+    var folios = new Set();
+    rimFilasCotizaciones_().forEach(function(fila) {
+      var folio = normalizar(fila[0]);
+      if (!folio || folios.has(folio)) return;
+      var doc = rimDocumentoFila_(fila);
+      if (!rimFechaEnRangoPanel_(fila[1] || (doc && doc.fecha), rango)) return;
+      var responsable = vendedor(fila[11] || (doc && doc.emailVendedor), doc && doc.vendedor);
+      if (responsable) {
+        responsable.cotizaciones++;
+        folios.add(folio);
+      }
     });
+    cotizaciones = Object.create(null);
+    Object.keys(vendedores).forEach(function(email) { cotizaciones[email] = vendedores[email].cotizaciones; });
+    cache.put(clave, JSON.stringify(cotizaciones), 60);
+  }
+
+  // Los pedidos se leen en cada consulta: su estado actual no depende de la caché.
+  var tickets = new Map();
+  var archivados = new Set(rimFilasPanelVentas_(libro, 'Historico_Pedidos', 1).map(function(fila) {
+    return normalizar(fila[0]);
+  }));
+  rimFilasPanelVentas_(libro, 'Solicitudes_Pedidos', 19).forEach(function(fila) {
+    var claveTicket = normalizar(fila[0]), estado = rimEstadoPanelVentas_(fila[18]);
+    if (!claveTicket || archivados.has(claveTicket) || estado === 'DESPACHADO_CONFORME') return;
+    var pedido = tickets.get(claveTicket);
+    if (!pedido) {
+      pedido = { ticket: String(fila[0]).trim(), nombre: fila[4], fecha: fila[2], cliente: String(fila[6] || ''), estados: new Set() };
+      tickets.set(claveTicket, pedido);
+    }
+    pedido.estados.add(estado);
   });
   rimFilasPanelVentas_(libro, 'RIM_Envios_Pedidos', 5).forEach(function(fila) {
-    var ticket = normalizar(fila[2]);
-    if (!ticket || (!tickets.has(ticket) && normalizar(fila[4]) !== 'confirmado')) return;
-    var pedido = tickets.get(ticket) || {};
+    var pedido = tickets.get(normalizar(fila[2]));
+    if (!pedido) return;
     if (normalizar(fila[1])) pedido.email = fila[1];
     if (!pedido.fecha) pedido.fecha = fila[3];
-    tickets.set(ticket, pedido);
   });
   tickets.forEach(function(pedido) {
-    if (!rimFechaEnRangoPanel_(pedido.fecha, rango)) return;
+    // Acumulado abierto: incluye arrastres anteriores al inicio del período.
+    if (!rimFechaEnRangoPanel_(pedido.fecha, { desde: '0001-01-01', hasta: rango.hasta })) return;
     var responsable = vendedor(pedido.email, pedido.nombre);
-    if (responsable) responsable.pedidos++;
+    if (!responsable) return;
+    var estado = pedido.estados.size === 1 ? Array.from(pedido.estados)[0] : 'MIXTO';
+    responsable.pedidos++;
+    responsable.estados[estado] = (responsable.estados[estado] || 0) + 1;
+    responsable.tickets.push({ ticket: pedido.ticket, cliente: pedido.cliente, estado: estado });
   });
 
   var resultado = Object.keys(vendedores).map(function(email) { return vendedores[email]; });
   resultado.sort(function(a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
-  cache.put(clave, JSON.stringify(resultado), 60);
+
   return resultado;
 }
 
@@ -158,4 +175,14 @@ function rimFechaEnRangoPanel_(valor, rango) {
     }
   }
   return !!dia && dia >= rango.desde && dia <= rango.hasta;
+}
+
+function rimEstadoPanelVentas_(valor) {
+  var estado = String(valor || 'PENDIENTE').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
+  if (estado.indexOf('DESPACH') >= 0) return 'DESPACHADO_CONFORME';
+  if (estado.indexOf('RECHAZ') >= 0 || estado.indexOf('DEVOLUC') >= 0) return 'RECHAZADO_DEVOLUCION';
+  if (estado.indexOf('ORDEN') >= 0 || estado.indexOf('COTIZACION') >= 0) return 'ORDEN_COMPRA';
+  if (estado === 'APROBADO' || estado.indexOf('TRANSITO') >= 0) return 'EN_TRANSITO';
+  if (estado.indexOf('RECIBIDO') >= 0 || estado.indexOf('ALMACEN') >= 0) return 'RECIBIDO';
+  return estado || 'PENDIENTE';
 }

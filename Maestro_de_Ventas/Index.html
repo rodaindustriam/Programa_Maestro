@@ -390,12 +390,12 @@
             <button type="submit" class="px-3 py-2 rounded-lg bg-sky-900 text-white text-sm font-bold">Aplicar filtro</button>
           </div>
         </div>
-        <p id="rim-panel-periodo-ayuda" class="text-xs text-slate-600">Fechas de Caracas. Último mes equivale a los últimos 30 días, incluido hoy.</p>
+        <p id="rim-panel-periodo-ayuda" class="text-xs text-slate-600">Cotizaciones del período y pedidos que siguen abiertos, creados hasta la fecha final. Último mes: 30 días. Fechas de Caracas.</p>
       </form>
       <dl class="rim-panel-resumen">
         <div><dt>Perfiles en línea</dt><dd id="rim-panel-total-activos">—</dd></div>
         <div><dt>Cotizaciones de ventas</dt><dd id="rim-panel-total-cotizaciones">—</dd></div>
-        <div><dt>Pedidos de ventas</dt><dd id="rim-panel-total-pedidos">—</dd></div>
+        <div><dt>Pedidos abiertos</dt><dd id="rim-panel-total-pedidos">—</dd></div>
       </dl>
       <div class="rim-panel-columnas">
         <section class="rim-panel-tarjeta" aria-labelledby="rim-panel-presencia">
@@ -408,9 +408,9 @@
         </section>
         <section class="rim-panel-tarjeta" aria-labelledby="rim-panel-actividad">
           <h3 id="rim-panel-actividad">Actividad por vendedor</h3>
-          <p id="rim-panel-rango-aplicado" aria-live="polite">Actividad de hoy · Caracas</p>
+          <p id="rim-panel-rango-aplicado" aria-live="polite">Cotizaciones de hoy y pedidos abiertos acumulados · Caracas</p>
           <table aria-labelledby="rim-panel-actividad">
-            <thead><tr><th scope="col">Vendedor</th><th scope="col" class="rim-panel-num">Cotizaciones</th><th scope="col" class="rim-panel-num">Pedidos</th></tr></thead>
+            <thead><tr><th scope="col">Vendedor</th><th scope="col" class="rim-panel-num">Cotizaciones</th><th scope="col" class="rim-panel-num">Abiertos</th></tr></thead>
             <tbody id="rim-panel-vendedores"></tbody>
           </table>
         </section>
@@ -2806,7 +2806,7 @@
         campo.value = rimHoyPanelVentas();
         campo.setCustomValidity('');
       });
-      document.getElementById('rim-panel-rango-aplicado').textContent = 'Actividad de hoy · Caracas';
+      document.getElementById('rim-panel-rango-aplicado').textContent = 'Cotizaciones de hoy y pedidos abiertos acumulados · Caracas';
       ['cotizaciones', 'pedidos'].forEach(function(tipo) {
         document.getElementById('rim-panel-total-' + tipo).textContent = '—';
       });
@@ -2858,7 +2858,7 @@
       try { await rimRpc('actualizarPresenciaVentas', []); }
       catch (err) { /* El siguiente pulso reintenta; rimRpc procesa las sesiones vencidas. */ }
       finally { rimPresenciaPendiente = false; }
-      if (!document.hidden && document.getElementById('rim-panel-ventas').open) rimActualizarPanelVentas();
+      if (!document.hidden && document.getElementById('rim-panel-ventas').open && !rimPanelPendiente) rimActualizarPanelVentas();
     }
 
     function rimAbrirPanelVentas() {
@@ -2890,6 +2890,29 @@
       });
     }
 
+    function rimResumenPedidosPanel(v) {
+      if (!v.pedidos) return '';
+      var estados = v.estados || {}, tickets = v.tickets || [];
+      var orden = ['PENDIENTE', 'ORDEN_COMPRA', 'EN_TRANSITO', 'RECIBIDO', 'RECHAZADO_DEVOLUCION', 'MIXTO'];
+      function etiqueta(estado) {
+        return estado === 'MIXTO' ? 'Estados mixtos' : formatearNombreEstado(estado);
+      }
+      var claves = Object.keys(estados).sort(function(a, b) {
+        var ia = orden.indexOf(a), ib = orden.indexOf(b);
+        return (ia < 0 ? orden.length : ia) - (ib < 0 ? orden.length : ib);
+      });
+      var resumen = claves.map(function(estado) {
+        return '<span class="inline-block rounded px-2 py-1 text-xs ' + obtenerColorBadgeEstado(estado) + '">' +
+          rimTextoSeguro(etiqueta(estado)) + ' <strong>' + Number(estados[estado]) + '</strong></span>';
+      }).join(' ');
+      var detalle = tickets.map(function(t) {
+        return '<li class="py-1 border-t border-slate-100"><strong>' + rimTextoSeguro(t.ticket) + '</strong> · ' +
+          rimTextoSeguro(etiqueta(t.estado)) + (t.cliente ? '<br>' + rimTextoSeguro(t.cliente) : '') + '</li>';
+      }).join('');
+      return '<div class="mt-2 flex flex-wrap gap-1">' + resumen + '</div><details class="mt-2 text-xs font-normal">' +
+        '<summary class="cursor-pointer text-sky-900">Ver ' + Number(v.pedidos) + ' pedidos</summary><ul class="mt-1">' + detalle + '</ul></details>';
+    }
+
     async function rimActualizarPanelVentas() {
       if (!rimPuedeVerPanelVentas() || rimPanelPendiente) return;
       var recargar = document.getElementById('rim-panel-recargar');
@@ -2903,7 +2926,7 @@
         var rango = datos.rango;
         function fechaCorta(dia) { return dia.split('-').reverse().join('/'); }
         document.getElementById('rim-panel-rango-aplicado').textContent =
-          (rango.desde === rango.hasta ? fechaCorta(rango.desde) : fechaCorta(rango.desde) + ' – ' + fechaCorta(rango.hasta)) + ' · Caracas';
+          (rango.desde === rango.hasta ? fechaCorta(rango.desde) : fechaCorta(rango.desde) + ' – ' + fechaCorta(rango.hasta)) + ' · Cotizaciones del período; abiertos acumulados al ' + fechaCorta(rango.hasta) + ' · Estado actual';
         var perfiles = datos.perfiles, vendedores = datos.vendedores;
         var etiquetas = { propietario: 'Propietario / Administración', supervisora: 'Supervisión / Dirección', vendedor: 'Ventas' };
         document.getElementById('rim-panel-activos').innerHTML = perfiles.length ? perfiles.map(function(p) {
@@ -2912,7 +2935,7 @@
             '</span></th><td class="rim-panel-num">' + rimTextoSeguro(rimDuracionSesion(p.segundos)) + '</td></tr>';
         }).join('') : '<tr><td colspan="2">No hay perfiles en línea.</td></tr>';
         document.getElementById('rim-panel-vendedores').innerHTML = vendedores.length ? vendedores.map(function(v) {
-          return '<tr><th scope="row">' + rimTextoSeguro(v.nombre) + '</th><td class="rim-panel-num">' + Number(v.cotizaciones) +
+          return '<tr><th scope="row">' + rimTextoSeguro(v.nombre) + rimResumenPedidosPanel(v) + '</th><td class="rim-panel-num">' + Number(v.cotizaciones) +
             '</td><td class="rim-panel-num">' + Number(v.pedidos) + '</td></tr>';
         }).join('') : '<tr><td colspan="3">No hay vendedores registrados.</td></tr>';
         document.getElementById('rim-panel-total-activos').textContent = perfiles.length;
@@ -3190,7 +3213,12 @@
       }catch(err){document.getElementById('rim-estado-seguimiento').textContent='Actualización pendiente. Se conservan los últimos datos.';if(!esSilencioso)mostrarToast(rimError(err));}
       finally{rimSeguimientoOcupado=false;}
     }
-    function iniciarPollingVentas(){setInterval(function(){if(!document.hidden&&rimUsuario)cargarNotificacionesYSeguimiento(true);},30000);}
+    function iniciarPollingVentas(){setInterval(function(){
+      if (!document.hidden && rimUsuario) {
+        cargarNotificacionesYSeguimiento(true);
+        if (document.getElementById('rim-panel-ventas').open) rimActualizarPanelVentas();
+      }
+    },30000);}
     function iniciarAutoSincronizacion(){setInterval(function(){if(!document.hidden)cargarDatos();},300000);}
     async function enviarComentarioDesdeVentas(){
       if(!rimNecesitaSesion())return;
