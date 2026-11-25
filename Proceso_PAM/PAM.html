@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proceso PAM · Rodaindustria Maracay</title>
+<style>
+:root{--ink:#162c40;--muted:#607386;--line:#dce5ed;--blue:#0969b1;--amber:#a4650c;--green:#08775b}
+*{box-sizing:border-box}body{margin:0;background:#f3f6f9;color:var(--ink);font-family:Inter,Arial,sans-serif;font-size:14px}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:wait}button:focus-visible,a:focus-visible{outline:3px solid #62b4e8;outline-offset:3px}input,textarea,select{width:100%;padding:10px 11px;border:1px solid #cbd7e2;border-radius:8px;background:#fff;color:var(--ink);min-width:0}input:focus,textarea:focus,select:focus{outline:2px solid #86c3e8;outline-offset:1px}textarea{resize:vertical}label{display:block;font-size:12px;font-weight:700;margin-bottom:6px}small,.muted{color:var(--muted)}[hidden]{display:none!important}
+header.topbar{background:linear-gradient(110deg,#172b37,#233e4d);color:#fff;border-bottom:1px solid #ffffff20}.top-inner{max-width:1440px;margin:auto;padding:18px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:13px}.brand-icon{display:grid;place-items:center;width:39px;height:39px;border:1px solid #ffffff25;border-radius:11px;color:#9ed6ef;font-weight:800}.brand h1{font-size:17px;margin:0 0 4px}.brand p{font-size:11px;color:#bed0db;margin:0}.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.btn{padding:10px 13px;border:1px solid #cbd8e4;border-radius:9px;color:#28485f;background:#fff;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}.btn:hover{background:#edf4f9}.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn.green{background:var(--green);border-color:var(--green);color:#fff}.btn.ghost{background:#ffffff0b;color:#e2eef7;border-color:#ffffff35}.btn.quiet{background:transparent;border:0;color:#567084;padding:7px 0}.shell{max-width:1440px;margin:auto;padding:22px 28px 45px}
+.notice{display:flex;gap:10px;align-items:flex-start;border:1px solid #bad6e8;background:#eef7fc;padding:13px 16px;border-radius:12px;line-height:1.5;font-size:12px}.notice b{display:block;margin-bottom:2px}.notice p{margin:0;color:#486a80}.status-line{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:14px 0;font-size:12px;color:var(--muted)}.status-line.error{color:#a03237}.filters{display:grid;grid-template-columns:minmax(180px,1fr) 180px auto;gap:12px;align-items:end;padding:17px;background:#fff;border:1px solid var(--line);border-radius:13px;margin-bottom:20px}.filters label{font-size:11px;color:var(--muted)}.vip-btn{height:38px;white-space:nowrap}.vip-btn[aria-pressed="true"]{background:#fff7e8;color:#875400;border-color:#e9cb87}
+.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}.stage{border:1px solid var(--line);border-radius:15px;background:#eaf0f5;overflow:hidden;min-width:0}.stage-head{padding:18px;background:#fff;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}.stage-head h2{font-size:14px;margin:0 0 5px;display:flex;align-items:center;gap:8px}.stage-head p{font-size:11px;color:var(--muted);margin:0}.dot{width:8px;height:8px;background:var(--amber);border-radius:50%;flex:none}.data .dot{background:var(--blue)}.ready .dot{background:var(--green)}.stage-count{font-size:13px;font-weight:800;background:#f1f5f9;border:1px solid var(--line);border-radius:8px;padding:5px 9px}.stage-list{padding:12px;display:grid;gap:12px;max-height:calc(100dvh - 320px);min-height:180px;overflow:auto}.empty{padding:30px 12px;text-align:center;color:#687f91;font-size:12px;border:1px dashed #bccbd7;border-radius:10px;line-height:1.6}.card{background:white;border:1px solid #d9e3ec;border-radius:11px;padding:15px;box-shadow:0 2px 4px #12304404;overflow-wrap:anywhere}.card-top{display:flex;justify-content:space-between;align-items:center;gap:7px;margin-bottom:10px;font-size:10px}.card-id{font-family:monospace;color:#60778b}.tag{padding:3px 6px;border-radius:5px;font-size:10px;background:#eef4f8;color:#48687e}.tag.vip{color:#906000;background:#fff5dd;border:1px solid #f0d395}.card h3{font-size:14px;line-height:1.5;margin:0 0 5px}.card-qty{font-size:11px;color:#526c80;margin-bottom:12px}.card-client{border-top:1px solid #edf1f5;padding-top:10px;display:flex;justify-content:space-between;align-items:start;gap:10px;font-size:11px}.card-client strong{display:block;line-height:1.5}.card-client small{font-size:10px}.card-detail{font-size:11px;line-height:1.7;background:#f5f8fb;border:1px solid #e0e8ef;border-radius:8px;padding:10px;margin-top:10px}.card-detail p{margin:0}.card-bottom{display:flex;gap:8px;margin-top:12px}.card-bottom .btn{flex:1}.card-activity{margin-top:7px;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#6d8191}.ready-info{color:var(--green);background:#eff9f4;border-color:#cce8db}.pending{background:#fff7e9;border:1px solid #edce92;border-radius:10px;padding:13px 15px;margin-bottom:14px}.pending h2{font-size:13px;margin:0 0 7px}.pending p{font-size:12px;margin:4px 0 10px;line-height:1.5}.pending-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:7px;font-size:12px}
+dialog{width:min(620px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:1px solid #d7e2eb;border-radius:17px;padding:0;color:var(--ink);background:#fff;box-shadow:0 25px 90px #122d4540}dialog::backdrop{background:#142d4470;backdrop-filter:blur(3px)}.dialog-head{padding:20px 22px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;background:#f8fafc}.dialog-head h2{font-size:17px;margin:0 0 5px}.dialog-head p{font-size:12px;color:var(--muted);margin:0;line-height:1.5}.close{border:1px solid var(--line);background:white;border-radius:7px;width:29px;height:29px;color:#486377;flex:none}.dialog-body{padding:21px 22px;display:grid;gap:16px}.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.dialog-footer{display:flex;justify-content:flex-end;gap:8px;padding:15px 22px;background:#f8fafc;border-top:1px solid var(--line)}.form-error{background:#fff0f1;border:1px solid #f2c4c8;color:#a33037;font-size:12px;line-height:1.5;border-radius:8px;padding:10px 12px}.help{font-size:11px;color:#60778a;line-height:1.6;margin:0}.form-section{margin:3px 0 0;padding-top:13px;border-top:1px solid var(--line)}.form-section h3{font-size:12px;margin:0 0 12px}.reference{font-size:12px;line-height:1.6;padding:11px 13px;background:#fff8e9;border:1px solid #ecd7ac;border-radius:9px}.form-check{display:flex;align-items:center;gap:7px;font-size:12px}.form-check input{width:auto}details{font-size:12px}summary{cursor:pointer;color:#3c6682;font-weight:700}details .grid-2{margin-top:13px}.mapping{border-collapse:collapse;width:100%;font-size:12px}.mapping td,.mapping th{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.mapping th{font-size:11px;color:#4d6880}.mapping code{font-size:11px;overflow-wrap:anywhere}.activity-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}.activity-list li{border-left:2px solid #b9d7eb;padding-left:12px;font-size:12px;line-height:1.6}.activity-list small{display:block}.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 18px;background:#173547;color:#fff;border-radius:10px;box-shadow:0 6px 25px #0c27322a;font-size:12px;z-index:99;max-width:calc(100% - 24px);line-height:1.5}
+@media(min-width:1500px){.stage-list{max-height:calc(100dvh - 310px)}}@media(max-width:980px){.board{grid-template-columns:1fr}.stage-list{max-height:none;grid-template-columns:repeat(2,minmax(0,1fr))}.stage{margin-bottom:6px}.stage-head{padding:15px}.empty{grid-column:1/-1}.stage-list:empty{min-height:130px}.filters{grid-template-columns:1fr 170px}.filters .vip-btn{grid-column:1/-1;justify-self:start}}@media(max-width:580px){.top-inner{padding:15px 16px}.shell{padding:16px 14px 35px}.actions .btn{font-size:11px;padding:9px 10px}.brand p{font-size:10px}.stage-list{grid-template-columns:1fr}.filters{grid-template-columns:1fr}.filters .vip-btn{grid-column:auto}.grid-2,.grid-3{grid-template-columns:1fr}.dialog-head,.dialog-body,.dialog-footer{padding:17px}.card h3{font-size:14px}.mapping td,.mapping th{padding:8px 4px;font-size:11px}}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="top-inner">
+  <div class="brand"><span class="brand-icon" aria-hidden="true">P</span><div><h1>RIM · Proceso PAM</h1><p>Procura, Data y seguimiento comercial</p></div></div>
+  <div class="actions"><button class="btn ghost" onclick="abrirIntegracion()">Integración Kommo</button><button class="btn primary" onclick="abrirSolicitud()">+ Nueva solicitud</button></div>
+</div></header>
+<main class="shell">
+  <section class="notice" aria-label="Modo de funcionamiento"><div><b>Prueba funcional · Base central</b><p>Las solicitudes y publicaciones se guardan en pestañas PAM. La publicación de prueba permite revisar el producto antes de incorporarlo al catálogo de Ventas. Kommo está pendiente de conexión.</p></div></section>
+  <div class="status-line"><span id="estado-carga" role="status">Cargando solicitudes…</span><button class="btn" id="btn-actualizar" onclick="cargarDatosPAM()">Actualizar</button></div>
+  <section id="pendientes" class="pending" hidden aria-live="polite"><h2>Envíos por confirmar</h2><p>Reintenta el mismo envío para completar su registro sin duplicarlo.</p><div id="lista-pendientes"></div></section>
+  <section class="filters" aria-label="Filtros">
+    <div><label for="buscador-pam">Buscar solicitud</label><input id="buscador-pam" type="search" placeholder="Producto, cliente, asesora, PAM o lead…" oninput="renderizarTablero()"></div>
+    <div><label for="filtro-asesora">Asesora</label><select id="filtro-asesora" onchange="renderizarTablero()"><option value="">Todas las asesoras</option></select></div>
+    <button class="btn vip-btn" id="btn-filtro-vip" aria-pressed="false" onclick="toggleFiltroVIP()">Solo VIP</button>
+  </section>
+  <section class="board" aria-label="Flujo de solicitudes PAM">
+    <section class="stage"><div class="stage-head"><div><h2><span class="dot"></span>Por ubicar · Procura</h2><p>Proveedor, cotización y plazo</p></div><span class="stage-count" id="badge-POR_UBICAR">0</span></div><div class="stage-list" id="lista-POR_UBICAR"></div></section>
+    <section class="stage data"><div class="stage-head"><div><h2><span class="dot"></span>En cálculo · Data</h2><p>Revisión y preparación del producto</p></div><span class="stage-count" id="badge-EN_DATA">0</span></div><div class="stage-list" id="lista-EN_DATA"></div></section>
+    <section class="stage ready"><div class="stage-head"><div><h2><span class="dot"></span>Publicado en prueba</h2><p>Revisable en PAM_Catalogo_Prueba</p></div><span class="stage-count" id="badge-DISPONIBLE">0</span></div><div class="stage-list" id="lista-DISPONIBLE"></div></section>
+  </section>
+</main>
+<dialog id="modal-solicitud" aria-labelledby="titulo-solicitud">
+<form id="form-solicitud" onsubmit="event.preventDefault(); guardarSolicitud()">
+  <div class="dialog-head"><div><h2 id="titulo-solicitud">Nueva solicitud PAM</h2><p>Un producto por solicitud. Un lead puede tener varias solicitudes.</p></div><button type="button" class="close" aria-label="Cerrar" onclick="cerrarModal('modal-solicitud')">✕</button></div>
+  <div class="dialog-body">
+    <input name="id" type="hidden"><input name="version" type="hidden">
+    <div class="form-error" id="error-solicitud" role="alert" hidden></div>
+    <div class="grid-2"><div><label for="new-asesora">Asesora *</label><input id="new-asesora" name="asesora" required maxlength="100"></div><div><label for="new-cliente">Cliente *</label><input id="new-cliente" name="cliente" required maxlength="200"></div></div>
+    <div><label for="new-item">Producto y especificaciones *</label><textarea id="new-item" name="item" required rows="3" maxlength="1000" placeholder="Referencia, marca solicitada, medidas, aplicación…"></textarea></div>
+    <div class="grid-2"><div><label for="new-cant">Cantidad *</label><input id="new-cant" name="cant" type="number" min="1" max="1000000000" step="1" value="1" required></div><div><label for="new-telf">Teléfono o últimos 4 dígitos</label><input id="new-telf" name="telefono" type="tel" maxlength="50"></div></div>
+    <label class="form-check"><input type="checkbox" name="vip"> Prioridad VIP</label>
+    <details><summary>Vinculación con Kommo (opcional en esta prueba)</summary><p class="help">Puedes probar sin lead. Estos campos se completarán desde Kommo al conectar la integración.</p>
+      <div class="grid-2"><div><label for="new-lead">ID de lead</label><input id="new-lead" name="lead_id" inputmode="numeric" pattern="[1-9][0-9]{0,19}" maxlength="20"></div><div><label for="new-pipeline">ID de embudo</label><input id="new-pipeline" name="pipeline_id" inputmode="numeric" pattern="[1-9][0-9]{0,19}" maxlength="20"></div><div><label for="new-embudo">Nombre del embudo</label><input id="new-embudo" name="embudo_origen" maxlength="100"></div></div>
+    </details>
+  </div><div class="dialog-footer"><button type="button" class="btn" onclick="cerrarModal('modal-solicitud')">Cancelar</button><button class="btn primary" type="submit">Guardar solicitud</button></div>
+</form></dialog>
+<dialog id="modal-procura" aria-labelledby="titulo-procura">
+<form id="form-procura" onsubmit="event.preventDefault(); guardarProcura()">
+  <div class="dialog-head"><div><h2 id="titulo-procura">Cotización de Procura</h2><p>Registra la oferta encontrada para que Data prepare los precios.</p></div><button type="button" class="close" aria-label="Cerrar" onclick="cerrarModal('modal-procura')">✕</button></div>
+  <div class="dialog-body"><input name="id" type="hidden"><input name="version" type="hidden"><div id="error-procura" class="form-error" role="alert" hidden></div>
+    <div><label for="proc-item">Producto solicitado *</label><textarea id="proc-item" name="item" required maxlength="1000" rows="2"></textarea></div>
+    <div class="grid-2"><div><label for="proc-proveedor">Proveedor ubicado *</label><input id="proc-proveedor" name="proveedor" required maxlength="200"></div><div><label for="proc-costo">Costo base USD *</label><input id="proc-costo" name="costo" type="number" min="0.01" max="1000000000" step="0.01" required></div></div>
+    <div><label for="proc-plazo">Plazo de entrega cotizado *</label><input id="proc-plazo" name="plazo" required maxlength="200" placeholder="Ej. 5 días, entrega local"></div>
+    <div><label for="proc-nota">Observaciones y referencia de la oferta</label><textarea id="proc-nota" name="nota" maxlength="2000" rows="3" placeholder="Condiciones, referencia de cotización o enlace al soporte"></textarea></div>
+  </div><div class="dialog-footer"><button type="button" class="btn" onclick="cerrarModal('modal-procura')">Cancelar</button><button class="btn primary" type="submit">Guardar y pasar a Data</button></div>
+</form></dialog>
+<dialog id="modal-data" aria-labelledby="titulo-data">
+<form id="form-data" onsubmit="event.preventDefault(); publicarEnPrueba()">
+  <div class="dialog-head"><div><h2 id="titulo-data">Preparar producto · Data</h2><p>Revisa la ficha y los cuatro precios antes de publicarla en prueba.</p></div><button type="button" class="close" aria-label="Cerrar" onclick="cerrarModal('modal-data')">✕</button></div>
+  <div class="dialog-body">
+    <input name="id" type="hidden"><input name="version" type="hidden"><div id="error-data" class="form-error" role="alert" hidden></div>
+    <div class="reference" id="data-ref-procura"></div>
+    <div><label for="data-codigo">Código o nombre oficial del producto *</label><input id="data-codigo" name="codigo_maestro" maxlength="200" required></div>
+    <div class="grid-2"><div><label for="data-marca">Marca *</label><input id="data-marca" name="marca" required maxlength="100"></div><div><label for="data-prv">Código de proveedor *</label><input id="data-prv" name="prv" required maxlength="100" placeholder="Ej. PRV-302"></div></div>
+    <div><label for="data-descripcion">Descripción comercial *</label><textarea id="data-descripcion" name="descripcion" required maxlength="1000" rows="2"></textarea></div>
+    <div class="form-section"><h3>Precios en USD</h3><p class="help">Data define los importes. La prueba no aplica márgenes automáticos.</p></div>
+    <div class="grid-2"><div><label for="data-mayor-bcv">Mayor a tasa BCV *</label><input id="data-mayor-bcv" name="precio_bcv" type="number" required min="0.01" max="1000000000" step="0.01"></div><div><label for="data-mayor-div">Mayor en divisa *</label><input id="data-mayor-div" name="precio_div" type="number" required min="0.01" max="1000000000" step="0.01"></div><div><label for="data-detal-bcv">Detal a tasa BCV *</label><input id="data-detal-bcv" name="detal_bcv" type="number" required min="0.01" max="1000000000" step="0.01"></div><div><label for="data-detal-div">Detal en divisa *</label><input id="data-detal-div" name="detal_div" type="number" required min="0.01" max="1000000000" step="0.01"></div></div>
+    <details><summary>Medidas y otras referencias (opcional)</summary><div class="grid-2"><div><label for="data-interna">Medida interna mm</label><input id="data-interna" name="interna" type="number" min="0" max="1000000000" step="any"></div><div><label for="data-externa">Medida externa mm</label><input id="data-externa" name="externa" type="number" min="0" max="1000000000" step="any"></div><div><label for="data-ancho">Ancho mm</label><input id="data-ancho" name="ancho" type="number" min="0" max="1000000000" step="any"></div><div><label for="data-referencias">Otras referencias</label><input id="data-referencias" name="referencias" maxlength="500"></div></div></details>
+    <p class="help">Se guardará en PAM_Catalogo_Prueba. Este paso no publica en Ventas ni mueve el lead en Kommo.</p>
+  </div><div class="dialog-footer"><button type="button" class="btn" onclick="cerrarModal('modal-data')">Cancelar</button><button class="btn green" type="submit">Publicar en prueba</button></div>
+</form></dialog>
+<dialog id="modal-kommo" aria-labelledby="titulo-kommo">
+  <div class="dialog-head"><div><h2 id="titulo-kommo">Integración con Kommo</h2><p>Preparación de datos · Conexión pendiente</p></div><button class="close" aria-label="Cerrar" onclick="cerrarModal('modal-kommo')">✕</button></div>
+  <div class="dialog-body">
+    <p class="help">Primero validaremos el flujo PAM. Después conectaremos la captura del lead y el cambio a «Ya disponible». No necesitas un token ni un webhook para esta prueba.</p>
+    <table class="mapping"><thead><tr><th>Dato de Kommo</th><th>Uso en PAM</th></tr></thead><tbody>
+      <tr><td><code>lead_id</code></td><td>Vincular uno o varios productos con el lead exacto.</td></tr>
+      <tr><td><code>pipeline_id</code></td><td>Conservar el embudo de la asesora.</td></tr>
+      <tr><td><code>status_id</code></td><td>Identificar la etapa de entrada.</td></tr>
+      <tr><td><code>responsible_user_id</code></td><td>Asignar la asesora responsable.</td></tr>
+      <tr><td><code>contact_id</code></td><td>Vincular cliente y teléfono.</td></tr>
+      <tr><td>Productos y cantidades</td><td>Capturarlos en formulario o revisarlos desde una nota.</td></tr>
+      <tr><td>Etapas PAM, VIP y Ya disponible</td><td>Configurar sus IDs por embudo.</td></tr>
+    </tbody></table>
+    <p class="help">El lead se moverá únicamente tras validar el catálogo real y resolver los productos que siga esperando. La autorización de Kommo se configurará del lado del servidor.</p>
+  </div>
+</dialog>
+<dialog id="modal-actividad" aria-labelledby="titulo-actividad"><div class="dialog-head"><div><h2 id="titulo-actividad">Actividad de la solicitud</h2><p id="actividad-id"></p></div><button class="close" aria-label="Cerrar" onclick="cerrarModal('modal-actividad')">✕</button></div><div class="dialog-body"><ul id="actividad-lista" class="activity-list"></ul></div></dialog>
+<dialog id="modal-ficha" aria-labelledby="titulo-ficha"><div class="dialog-head"><div><h2 id="titulo-ficha">Ficha de la solicitud</h2><p id="ficha-id"></p></div><button class="close" aria-label="Cerrar" onclick="cerrarModal('modal-ficha')">✕</button></div><div class="dialog-body" id="ficha-contenido"></div></dialog>
+<div id="toast" class="toast" role="status" hidden></div>
+<script>
+let solicitudesPAM = [], soloVIP = false, pamCargando = false, pamGuardando = false;
+let pamPendientesServidor = [], pamPendienteLocal = null, pamToastTimer, pamActividadRevision = 0;
+const PAM_ESTADO = {POR_UBICAR:'Por ubicar',EN_DATA:'En cálculo',DISPONIBLE:'Publicado en prueba'};
+const PAM_ACCIONES = {SOLICITUD:'Solicitud registrada / editada',PROCURA:'Cotización de Procura guardada',PUBLICAR_PRUEBA:'Producto publicado en prueba'};
+
+function pamRpc(nombre, args) {
+  return new Promise((resolve,reject) => {
+    if (typeof google === 'undefined' || !google.script || !google.script.run) {
+      reject(new Error('Abre esta interfaz desde su implementación en Apps Script para guardar y consultar los datos.'));
+      return;
+    }
+    const runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(error => reject(new Error(error.message || String(error))));
+    runner[nombre].apply(runner,args || []);
+  });
+}
+function pamEsc(valor) {
+  return String(valor == null ? '' : valor).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function pamOperacion() { return crypto.randomUUID().replace(/-/g,'') + crypto.randomUUID().replace(/-/g,''); }
+function pamDinero(valor) { return '$' + Number(valor || 0).toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function pamGuardarPendiente(valor) {
+  pamPendienteLocal = valor;
+  try { if (valor) localStorage.setItem('proceso_pam:v1:envio',JSON.stringify(valor)); else localStorage.removeItem('proceso_pam:v1:envio'); } catch(e) { /* El envío sigue recuperable en esta ventana y en el servidor si ya comenzó. */ }
+  pamMostrarPendientes();
+}
+function pamMostrarPendientes() {
+  const mapa = new Map(pamPendientesServidor.map(p=>[p.operacion,p]));
+  if (pamPendienteLocal) mapa.set(pamPendienteLocal.datos.operacion,{operacion:pamPendienteLocal.datos.operacion,id:pamPendienteLocal.datos.id || 'Nueva solicitud',tipo:pamPendienteLocal.nombre});
+  const lista = document.getElementById('lista-pendientes');
+  lista.replaceChildren();
+  mapa.forEach(p=>{
+    const fila=document.createElement('div');fila.className='pending-row';
+    const texto=document.createElement('span');texto.textContent=p.id + ' · Envío por confirmar';
+    const boton=document.createElement('button');boton.className='btn';boton.textContent='Reintentar';boton.disabled=pamGuardando;
+    boton.onclick=()=>reintentarPAM(p.operacion);fila.append(texto,boton);lista.append(fila);
+  });
+  document.getElementById('pendientes').hidden=!mapa.size;
+}
+async function cargarDatosPAM() {
+  if (pamCargando || pamGuardando) return;
+  pamCargando=true;
+  const estado=document.getElementById('estado-carga'), boton=document.getElementById('btn-actualizar');
+  boton.disabled=true;estado.textContent='Actualizando solicitudes…';estado.parentElement.classList.remove('error');
+  try {
+    const res=await pamRpc('obtenerDatosTableroPAM');
+    if (!res || !res.exito) throw new Error(res && res.error || 'No se pudo leer el tablero.');
+    solicitudesPAM=res.lista; pamPendientesServidor=res.pendientes || [];
+    const selector=document.getElementById('filtro-asesora'), actual=selector.value;
+    selector.replaceChildren(new Option('Todas las asesoras',''));
+    (res.asesoras || []).forEach(a=>selector.add(new Option(a,a)));
+    if ((res.asesoras || []).includes(actual)) selector.value=actual;
+    renderizarTablero();pamMostrarPendientes();
+    estado.textContent='Actualizado '+new Date().toLocaleTimeString('es-VE',{timeZone:'America/Caracas',hour:'2-digit',minute:'2-digit'})+' · '+solicitudesPAM.length+' solicitudes';
+  } catch(error) {
+    estado.textContent=error.message+' Pulsa Actualizar para reintentar.';
+    estado.parentElement.classList.add('error');
+    if (!solicitudesPAM.length) ['POR_UBICAR','EN_DATA','DISPONIBLE'].forEach(e=>document.getElementById('lista-'+e).innerHTML='<div class="empty">No se pudo consultar esta etapa.</div>');
+  } finally { pamCargando=false;boton.disabled=false; }
+}
+function toggleFiltroVIP() {
+  soloVIP=!soloVIP;document.getElementById('btn-filtro-vip').setAttribute('aria-pressed',String(soloVIP));renderizarTablero();
+}
+function renderizarTablero() {
+  const q=document.getElementById('buscador-pam').value.trim().toLowerCase(), asesora=document.getElementById('filtro-asesora').value;
+  const filtrados=solicitudesPAM.filter(p=>(!soloVIP || p.prioridad==='VIP') && (!asesora || p.asesora===asesora) &&
+    (!q || [p.id,p.lead_id,p.item,p.cliente,p.asesora,p.ultimos_4,p.codigo_maestro].join(' ').toLowerCase().includes(q)));
+  Object.keys(PAM_ESTADO).forEach(etapa=>{
+    const lista=filtrados.filter(p=>p.etapa===etapa).sort((a,b)=>Number(b.prioridad==='VIP')-Number(a.prioridad==='VIP'));
+    document.getElementById('badge-'+etapa).textContent=lista.length;
+    const cont=document.getElementById('lista-'+etapa);
+    cont.innerHTML=lista.length ? lista.map(pamTarjeta).join('') : '<div class="empty">'+(q || asesora || soloVIP ? 'Sin resultados con estos filtros.' : 'Sin solicitudes en esta etapa.')+'</div>';
+  });
+}
+function pamTarjeta(p) {
+  let extra='', accion='';
+  const id=pamEsc(p.id);
+  if (p.etapa==='POR_UBICAR') {
+    accion='<button class="btn primary" data-accion="procura" data-id="'+id+'">Cargar cotización</button><button class="btn" data-accion="editar" data-id="'+id+'">Editar</button>';
+  } else if (p.etapa==='EN_DATA') {
+    extra='<div class="card-detail"><p><b>'+pamEsc(p.proveedor)+'</b> · Costo '+pamDinero(p.costo)+'</p><p>'+pamEsc(p.plazo)+'</p></div>';
+    accion='<button class="btn primary" data-accion="data" data-id="'+id+'">Preparar producto</button><button class="btn" data-accion="procura" data-id="'+id+'">Procura</button>';
+  } else {
+    extra='<div class="card-detail ready-info"><p><b>'+pamEsc(p.codigo_maestro)+'</b></p><p>Mayor BCV '+pamDinero(p.precio_bcv)+' · Divisa '+pamDinero(p.precio_div)+'</p><p>Guardado en catálogo de prueba · Kommo sin conexión</p></div>';
+  }
+  if (p.etapa==='DISPONIBLE') accion='<button class="btn" data-accion="ficha" data-id="'+id+'">Ver ficha de prueba</button>';
+  return '<article class="card"><div class="card-top"><span class="card-id">'+id+'</span><span>'+
+    (p.prioridad==='VIP'?'<span class="tag vip">VIP</span>':'')+(p.lead_id?' <span class="tag">Lead '+pamEsc(p.lead_id)+'</span>':'')+
+    '</span></div><h3>'+pamEsc(p.item)+'</h3><div class="card-qty">Cantidad: <b>'+Number(p.cant)+'</b></div>'+
+    '<div class="card-client"><div><strong>'+pamEsc(p.cliente)+'</strong><small>'+(p.ultimos_4?'Terminación '+pamEsc(p.ultimos_4):'Sin teléfono registrado')+
+    '</small></div><span class="tag">'+pamEsc(p.asesora)+'</span></div>'+extra+(accion?'<div class="card-bottom">'+accion+'</div>':'')+
+    '<div class="card-activity"><span>'+pamEsc(p.fecha)+'</span><button class="btn quiet" data-accion="actividad" data-id="'+id+'">Actividad</button></div></article>';
+}
+function pamForm(nombre, registro) {
+  const form=document.getElementById('form-'+nombre);form.reset();
+  Object.entries(registro || {}).forEach(([campo,valor])=>{ const input=form.elements.namedItem(campo);if(input && input.type!=='checkbox') input.value=valor == null ? '' : valor; });
+  document.getElementById('error-'+nombre).hidden=true;
+  return form;
+}
+function abrirSolicitud(id) {
+  const p=id ? solicitudesPAM.find(x=>x.id===id) : null;
+  const form=pamForm('solicitud',p);
+  form.elements.vip.checked=!!(p && p.prioridad==='VIP');
+  document.getElementById('titulo-solicitud').textContent=p?'Editar solicitud PAM':'Nueva solicitud PAM';
+  document.getElementById('modal-solicitud').showModal();
+}
+function abrirModalProcura(id) {
+  const p=solicitudesPAM.find(x=>x.id===id);if(!p)return;
+  pamForm('procura',p);document.getElementById('modal-procura').showModal();
+}
+function abrirModalData(id) {
+  const p=solicitudesPAM.find(x=>x.id===id);if(!p)return;
+  pamForm('data',Object.assign({},p,{codigo_maestro:p.codigo_maestro || p.item,descripcion:p.descripcion || p.item}));
+  document.getElementById('data-ref-procura').textContent=p.proveedor+' · Costo '+pamDinero(p.costo)+' · '+p.plazo;
+  document.getElementById('modal-data').showModal();
+}
+function abrirFicha(id) {
+  const p=solicitudesPAM.find(x=>x.id===id);if(!p)return;
+  document.getElementById('ficha-id').textContent=p.id+' · '+(PAM_ESTADO[p.etapa] || p.etapa);
+  const campos=[
+    ['Producto',p.item],['Cantidad',p.cant],['Cliente',p.cliente],['Asesora',p.asesora],['Proveedor',p.proveedor],
+    ['Costo USD',pamDinero(p.costo)],['Plazo cotizado',p.plazo],['Observaciones de Procura',p.nota],
+    ['Código de catálogo',p.codigo_maestro],['Marca',p.marca],['Código de proveedor',p.prv],['Descripción',p.descripcion],
+    ['Mayor BCV',pamDinero(p.precio_bcv)],['Mayor divisa',pamDinero(p.precio_div)],
+    ['Detal BCV',pamDinero(p.detal_bcv)],['Detal divisa',pamDinero(p.detal_div)],
+    ['Medidas interna / externa / ancho',[p.interna,p.externa,p.ancho].map(v=>v==='' || v==null?'—':v).join(' / ')+' mm'],
+    ['Otras referencias',p.referencias],['Lead Kommo',p.lead_id],['Embudo',p.embudo_origen],['Integración','Sin conexión con Kommo']
+  ];
+  document.getElementById('ficha-contenido').innerHTML='<table class="mapping"><tbody>'+campos.map(([nombre,valor])=>
+    '<tr><th scope="row">'+pamEsc(nombre)+'</th><td>'+pamEsc(valor==='' || valor==null?'—':valor)+'</td></tr>'
+  ).join('')+'</tbody></table>';
+  document.getElementById('modal-ficha').showModal();
+}
+function abrirIntegracion() { document.getElementById('modal-kommo').showModal(); }
+function cerrarModal(id) { if(!pamGuardando) document.getElementById(id).close(); }
+function pamDatosForm(nombre) {
+  const form=document.getElementById('form-'+nombre);
+  if(!form.reportValidity())return null;
+  const datos=Object.fromEntries(new FormData(form));
+  delete datos.vip;
+  if(nombre==='solicitud')datos.prioridad=form.elements.vip.checked?'VIP':'NORMAL';
+  return datos;
+}
+function pamOcupado(valor) {
+  pamGuardando=valor;
+  document.querySelectorAll('dialog form button').forEach(b=>b.disabled=valor);
+  pamMostrarPendientes();
+}
+async function pamEnviar(nombre, datos, formulario) {
+  if(pamGuardando)return;
+  if(pamPendienteLocal){mostrarToast('Hay un envío anterior por confirmar. Reinténtalo desde el aviso del tablero.');return;}
+  datos.operacion=pamOperacion();
+  pamGuardarPendiente({nombre,datos});
+  pamOcupado(true);
+  try {
+    const res=await pamRpc(nombre,[datos]);
+    if(!res || !res.exito)throw new Error(res && res.error || 'No se confirmó la operación.');
+    pamGuardarPendiente(null);
+    document.getElementById('modal-'+formulario).close();
+    mostrarToast(nombre==='publicarPAMPrueba'?'Producto guardado en el catálogo de prueba.':'Cambios guardados.');
+  } catch(error) {
+    const caja=document.getElementById('error-'+formulario);caja.textContent=error.message;caja.hidden=false;
+    let registrada = true;
+    try {
+      const consulta = await pamRpc('consultarOperacionPAM',[datos.operacion]);
+      registrada = !consulta || !consulta.exito || consulta.registrada;
+      if (!registrada) pamGuardarPendiente(null);
+    } catch(e) { /* Ante una caída de conexión, conservar el mismo envío para reintentar. */ }
+    mostrarToast(registrada ? 'No se confirmó el envío. Reinténtalo desde el aviso del tablero.' : 'Revisa los campos indicados y vuelve a guardar.');
+  } finally {
+    pamOcupado(false);
+    await cargarDatosPAM();
+  }
+}
+function guardarSolicitud() { const datos=pamDatosForm('solicitud');if(datos)pamEnviar('guardarSolicitudPAM',datos,'solicitud'); }
+function guardarProcura() { const datos=pamDatosForm('procura');if(datos)pamEnviar('guardarProcuraPAM',datos,'procura'); }
+function publicarEnPrueba() { const datos=pamDatosForm('data');if(datos)pamEnviar('publicarPAMPrueba',datos,'data'); }
+async function reintentarPAM(operacion) {
+  if(pamGuardando)return;pamOcupado(true);
+  try {
+    const local=pamPendienteLocal && pamPendienteLocal.datos.operacion===operacion?pamPendienteLocal:null;
+    const res=local?await pamRpc(local.nombre,[local.datos]):await pamRpc('reintentarOperacionPAM',[operacion]);
+    if(!res || !res.exito)throw new Error('No se confirmó la recuperación.');
+    if(local)pamGuardarPendiente(null);
+    ['modal-solicitud','modal-procura','modal-data'].forEach(id=>document.getElementById(id).close());
+    mostrarToast('Envío confirmado sin duplicados.');
+  } catch(error) {
+    try {
+      const consulta=await pamRpc('consultarOperacionPAM',[operacion]);
+      if(consulta && consulta.exito && !consulta.registrada && pamPendienteLocal && pamPendienteLocal.datos.operacion===operacion) pamGuardarPendiente(null);
+    } catch(e) { /* Conservar el envío si no se pudo comprobar su estado. */ }
+    mostrarToast(error.message);
+  } finally { pamOcupado(false);await cargarDatosPAM(); }
+}
+async function abrirActividad(id) {
+  const revision=++pamActividadRevision;
+  document.getElementById('actividad-id').textContent=id;
+  const lista=document.getElementById('actividad-lista');lista.textContent='Consultando actividad…';
+  document.getElementById('modal-actividad').showModal();
+  try {
+    const eventos=await pamRpc('obtenerActividadPAM',[id]);
+    if(revision!==pamActividadRevision)return;
+    lista.replaceChildren();
+    eventos.forEach(e=>{
+      const li=document.createElement('li'), titulo=document.createElement('strong'), info=document.createElement('div'), autor=document.createElement('small');
+      titulo.textContent=PAM_ACCIONES[e.accion] || e.accion;info.textContent=e.fecha+' · '+(PAM_ESTADO[e.etapa] || e.etapa);autor.textContent=e.autor;
+      li.append(titulo,info,autor);lista.append(li);
+    });
+    if(!eventos.length)lista.textContent='No hay movimientos registrados para esta solicitud.';
+  } catch(error){if(revision===pamActividadRevision)lista.textContent=error.message;}
+}
+function mostrarToast(texto) {
+  const toast=document.getElementById('toast');toast.textContent=texto;toast.hidden=false;
+  clearTimeout(pamToastTimer);pamToastTimer=setTimeout(()=>toast.hidden=true,6500);
+}
+document.querySelector('.board').addEventListener('click',event=>{
+  const boton=event.target.closest('button[data-accion]');if(!boton)return;
+  const acciones={procura:abrirModalProcura,data:abrirModalData,editar:abrirSolicitud,actividad:abrirActividad,ficha:abrirFicha};
+  acciones[boton.dataset.accion](boton.dataset.id);
+});
+document.querySelectorAll('dialog').forEach(d=>d.addEventListener('cancel',event=>{if(pamGuardando)event.preventDefault();}));
+try { pamPendienteLocal=JSON.parse(localStorage.getItem('proceso_pam:v1:envio') || 'null'); } catch(e) { pamPendienteLocal=null; }
+if(pamPendienteLocal && (!pamPendienteLocal.datos || !pamPendienteLocal.datos.operacion))pamPendienteLocal=null;
+pamMostrarPendientes();
+cargarDatosPAM();
+setInterval(()=>{if(!document.hidden && !document.querySelector('dialog[open]'))cargarDatosPAM();},60000);
+</script>
+</body>
+</html>
