@@ -50,7 +50,7 @@ function pamComercial_(p) {
     cliente: p.cliente, ultimos_4: p.ultimos_4, prioridad: p.prioridad, item: p.item, cant: p.cant,
     etapa: p.etapa, codigo_maestro: p.codigo_maestro, version: p.version, embudo_origen: p.embudo_origen,
     pipeline_id: p.pipeline_id, grupo: p.grupo, estado_cliente: p.estado_cliente,
-    confirmado: p.confirmado, fecha_confirmacion: p.fecha_confirmacion
+    confirmado: p.confirmado, fecha_confirmacion: p.fecha_confirmacion, drd_etapa: p.drd_etapa
   };
 }
 

@@ -9,7 +9,7 @@ var PAM_COLUMNAS_ = [
   'VERSION','FECHA_ACTUALIZACION','CLAVE_CREACION','ULTIMA_OPERACION','PROVEEDOR','COSTO_BASE',
   'PLAZO_ENTREGA','MARCA','CODIGO_PROVEEDOR','PRECIO_DETAL_BCV','PRECIO_DETAL_DIV','DESCRIPCION',
   'MEDIDA_INTERNA','MEDIDA_EXTERNA','ANCHO','OTRAS_REFERENCIAS','KOMMO_ESTADO','CONTACTO_ID',
-  'RESPONSABLE_KOMMO_ID','ESTADO_KOMMO_ID','ORIGEN','PLAZO_MARACAY','PLAZO_EL_TIGRE','PLAZO_BARQUISIMETO','CONFIRMACION_VENTAS','FECHA_CONFIRMACION'
+  'RESPONSABLE_KOMMO_ID','ESTADO_KOMMO_ID','ORIGEN','PLAZO_MARACAY','PLAZO_EL_TIGRE','PLAZO_BARQUISIMETO','CONFIRMACION_VENTAS','FECHA_CONFIRMACION','FECHA_TOMA_PROCURA'
 ];
 var PAM_HOJAS_ = {
   solicitudes: ['PAM_Solicitudes', PAM_COLUMNAS_],
@@ -142,11 +142,13 @@ function pamPublico_(o) {
     version: o.VERSION, kommo_estado: o.KOMMO_ESTADO || 'SIN_CONEXION',
     grupo: String(o.PIPELINE_ID || o.EMBUDO_ORIGEN || o.ASESORA || 'SIN_EMBUDO'),
     estado_cliente: o.KOMMO_ESTADO === 'DEMO_DISPONIBLE' ? 'Ya disponible (simulado)' : 'PAM (simulado)',
-    confirmado: !!o.CONFIRMACION_VENTAS, fecha_confirmacion: fecha(o.FECHA_CONFIRMACION)
+    confirmado: !!o.CONFIRMACION_VENTAS, fecha_confirmacion: fecha(o.FECHA_CONFIRMACION),
+    drd_etapa: o.KOMMO_ESTADO === 'DEMO_DISPONIBLE' ? 'YA_DISPONIBLE' :
+      (o.FECHA_TOMA_PROCURA || o.ETAPA_PAM === 'EN_DATA' || o.ETAPA_PAM === 'DISPONIBLE' ? 'PROCESANDO' : 'PAM')
   };
 }
 
-function obtenerDatosTableroPAM(rol) {
+function obtenerDatosTableroPAM(rol, embudoDemo) {
   var perfil = pamPerfilDemo_(rol);
   return pamConBloqueo_(function() {
     var hojas = pamPreparar_(pamLibro_());
@@ -163,8 +165,10 @@ function obtenerDatosTableroPAM(rol) {
     var pendientes = pamFilas_(hojas.operaciones, 8).filter(function(f) { return f[4] === 'PENDIENTE'; })
       .map(function(f) { return { operacion: f[0], id: f[2], tipo: f[1] }; });
     if (!perfil.interno) {
-      lista = lista.map(pamComercial_);
-      pendientes = pendientes.filter(function(p) { return p.tipo === 'SOLICITUD' || p.tipo === 'CONFIRMAR_DRD'; });
+      var embudo = pamEmbudoDemo_(embudoDemo || PAM_EMBUDOS_DEMO_[0].id);
+      lista = lista.filter(function(p) { return String(p.embudo_origen || p.asesora).toUpperCase() === embudo.nombre; }).map(pamComercial_);
+      var ids = new Set(lista.map(function(p) { return p.id; }));
+      pendientes = pendientes.filter(function(p) { return ids.has(p.id) && (p.tipo === 'SOLICITUD' || p.tipo === 'CONFIRMAR_DRD'); });
     }
     return {
       exito: true, modo: 'PRUEBA', kommo_conectado: false, perfil: perfil,
@@ -259,7 +263,7 @@ function pamAplicarOperacion_(hojas, filaOperacion, operacion) {
 }
 
 function pamGuardar_(tipo, datos, rol) {
-  var perfil = pamExigirDemo_(rol, tipo === 'PROCURA' ? 'procura' : tipo === 'PUBLICAR_PRUEBA' ? 'data' : null);
+  var perfil = pamExigirDemo_(rol, (tipo === 'PROCURA' || tipo === 'TOMAR_PAM') ? 'procura' : tipo === 'PUBLICAR_PRUEBA' ? 'data' : null);
   return pamConBloqueo_(function() {
     datos = datos || {};
     var opId = pamRequerido_(datos.operacion, 'identificador de operación', 100);
@@ -312,6 +316,9 @@ function pamGuardar_(tipo, datos, rol) {
       if (perfil.rol === 'ventas') pamEsMiEmbudoDemo_(o, datos);
       o.CONFIRMACION_VENTAS = 'CONFIRMADO';
       o.FECHA_CONFIRMACION = new Date().toISOString();
+    } else if (tipo === 'TOMAR_PAM') {
+      if (etapaAnterior !== 'POR_UBICAR') throw new Error('La solicitud ya pasó a Data.');
+      o.FECHA_TOMA_PROCURA = o.FECHA_TOMA_PROCURA || new Date().toISOString();
     } else if (tipo === 'PROCURA') {
       if (etapaAnterior !== 'POR_UBICAR' && etapaAnterior !== 'EN_DATA') throw new Error('La solicitud ya está publicada en prueba.');
       o.ITEM_SOLICITADO = pamRequerido_(datos.item, 'producto solicitado', 1000);
@@ -319,6 +326,7 @@ function pamGuardar_(tipo, datos, rol) {
       o.COSTO_BASE = pamNumero_(datos.costo, 'costo base', false);
       o.PROVEEDOR_COSTO = o.PROVEEDOR + ' | ' + o.COSTO_BASE;
       o.NOTA_PROCURA = pamTexto_(datos.nota, 2000);
+      o.FECHA_TOMA_PROCURA = o.FECHA_TOMA_PROCURA || new Date().toISOString();
       o.ETAPA_PAM = 'EN_DATA';
     } else if (tipo === 'PUBLICAR_PRUEBA') {
       if (etapaAnterior !== 'EN_DATA') throw new Error('Procura debe registrar la cotización antes de publicar.');
@@ -370,6 +378,7 @@ function pamGuardar_(tipo, datos, rol) {
   });
 }
 
+function tomarSolicitudPAM(datos, rol) { return pamGuardar_('TOMAR_PAM', datos, rol); }
 function guardarSolicitudPAM(datos, rol) { return pamGuardar_('SOLICITUD', datos, rol); }
 function guardarProcuraPAM(datos, rol) { return pamGuardar_('PROCURA', datos, rol); }
 function publicarPAMPrueba(datos, rol) { return pamGuardar_('PUBLICAR_PRUEBA', datos, rol); }
@@ -383,7 +392,7 @@ function reintentarOperacionPAM(id, rol) {
     var indice = operaciones.findIndex(function(f) { return f[0] === id; });
     if (indice < 0) throw new Error('Operación no encontrada.');
     var tipo = operaciones[indice][1];
-    pamExigirDemo_(rol, tipo === 'PROCURA' ? 'procura' : tipo === 'PUBLICAR_PRUEBA' ? 'data' : null);
+    pamExigirDemo_(rol, (tipo === 'PROCURA' || tipo === 'TOMAR_PAM') ? 'procura' : tipo === 'PUBLICAR_PRUEBA' ? 'data' : null);
     if (!perfil.interno) throw new Error('Reintenta tu envío desde el aviso local del D.R.D.');
     if (operaciones[indice][4] === 'CONFIRMADO') return JSON.parse(operaciones[indice][6] || '{}');
     return pamAplicarOperacion_(hojas, indice + 2, operaciones[indice]);

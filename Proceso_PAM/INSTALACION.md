@@ -115,7 +115,9 @@ Mantener el acceso del despliegue en Solo yo durante la demostración.
 | Data | Sí | Sí | Preparar producto, publicar en prueba y simular Ya disponible |
 | Administrador | Sí | Sí | Probar todas las acciones |
 
-El D.R.D. se organiza por embudos de vendedor y muestra exclusivamente datos comerciales.
+El D.R.D. muestra exclusivamente datos comerciales y tiene tres segmentos: PAM,
+Procesando y Ya disponible. Ventas recibe del servidor únicamente los registros del
+embudo seleccionado en la demo. Procura, Data y Administrador pueden filtrar por asesora.
 La respuesta para el perfil Ventas omite proveedor, código de proveedor, costos, precios
 de preparación, plazos de proveedor y notas internas. El servidor también comprueba el
 perfil solicitado antes de entregar proveedores o ejecutar acciones internas.
@@ -137,3 +139,21 @@ la solicitud seleccionada. El cambio no realiza llamadas HTTP ni mueve leads rea
 Antes de compartir con el equipo se debe sustituir el selector por identificación real,
 asignar permisos en el servidor y conectar la fuente de Kommo. El selector de demo no es
 un control de acceso para producción.
+
+## Seguimiento comercial del D.R.D.
+
+- PAM: solicitudes nuevas que Procura todavía no ha tomado.
+- Procesando: Procura tomó la solicitud, guardó la cotización o Data preparó el producto.
+- Ya disponible: Data confirmó el pase a Ya disponible (simulado en esta demo).
+
+El botón Tomar PAM está disponible para Procura y Administrador. Registrar la cotización
+directamente también marca el inicio del procesamiento.
+
+Publicar en PAM_Catalogo_Prueba mantiene al cliente en Procesando hasta confirmar el pase.
+Las solicitudes con el mismo ID de lead se agrupan en una tarjeta con sus artículos y
+cantidades. El cliente pasa a Ya disponible cuando todos los productos cumplen el flujo.
+Sin ID de lead, cada solicitud conserva su tarjeta propia; no se agrupa por nombre ni por
+los últimos cuatro dígitos del teléfono.
+
+El selector Mi embudo de la demo actualiza la consulta al servidor y limpia los resultados
+anteriores. El filtro Todas las asesoras se reserva a los perfiles internos.
