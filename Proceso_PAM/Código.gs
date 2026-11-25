@@ -9,7 +9,7 @@ var PAM_COLUMNAS_ = [
   'VERSION','FECHA_ACTUALIZACION','CLAVE_CREACION','ULTIMA_OPERACION','PROVEEDOR','COSTO_BASE',
   'PLAZO_ENTREGA','MARCA','CODIGO_PROVEEDOR','PRECIO_DETAL_BCV','PRECIO_DETAL_DIV','DESCRIPCION',
   'MEDIDA_INTERNA','MEDIDA_EXTERNA','ANCHO','OTRAS_REFERENCIAS','KOMMO_ESTADO','CONTACTO_ID',
-  'RESPONSABLE_KOMMO_ID','ESTADO_KOMMO_ID','ORIGEN'
+  'RESPONSABLE_KOMMO_ID','ESTADO_KOMMO_ID','ORIGEN','PLAZO_MARACAY','PLAZO_EL_TIGRE','PLAZO_BARQUISIMETO'
 ];
 var PAM_HOJAS_ = {
   solicitudes: ['PAM_Solicitudes', PAM_COLUMNAS_],
@@ -132,6 +132,7 @@ function pamPublico_(o) {
     proveedor: o.PROVEEDOR, costo: Number(o.COSTO_BASE) || 0, plazo: o.PLAZO_ENTREGA,
     precio_bcv: Number(o.PRECIO_MAYOR_BCV) || 0, precio_div: Number(o.PRECIO_MAYOR_DIV) || 0,
     detal_bcv: Number(o.PRECIO_DETAL_BCV) || 0, detal_div: Number(o.PRECIO_DETAL_DIV) || 0,
+    plazos: { maracay: o.PLAZO_MARACAY || '', el_tigre: o.PLAZO_EL_TIGRE || '', barquisimeto: o.PLAZO_BARQUISIMETO || '' },
     etapa: o.ETAPA_PAM || 'POR_UBICAR', codigo_maestro: o.CODIGO_MAESTRO, marca: o.MARCA,
     prv: o.CODIGO_PROVEEDOR, descripcion: o.DESCRIPCION, interna: o.MEDIDA_INTERNA,
     externa: o.MEDIDA_EXTERNA, ancho: o.ANCHO, referencias: o.OTRAS_REFERENCIAS,
@@ -147,11 +148,20 @@ function obtenerDatosTableroPAM() {
     var hojas = pamPreparar_(pamLibro_());
     var lista = pamFilas_(hojas.solicitudes, PAM_COLUMNAS_.length).filter(function(f) { return f[0]; })
       .map(function(f) { return pamPublico_(pamObjeto_(f)); }).reverse();
+    var publicados = pamFilas_(hojas.catalogo, 19);
+    lista.forEach(function(p) {
+      var fila = publicados.find(function(f) { return String(f[16]) === p.id; });
+      if (fila) {
+        p.detal_bcv = typeof fila[12] === 'number' && isFinite(fila[12]) ? fila[12] : null;
+        p.detal_div = typeof fila[13] === 'number' && isFinite(fila[13]) ? fila[13] : null;
+      }
+    });
     var pendientes = pamFilas_(hojas.operaciones, 8).filter(function(f) { return f[4] === 'PENDIENTE'; })
       .map(function(f) { return { operacion: f[0], id: f[2], tipo: f[1] }; });
     return {
       exito: true, modo: 'PRUEBA', kommo_conectado: false, lista: lista, pendientes: pendientes,
-      asesoras: Array.from(new Set(lista.map(function(p) { return p.asesora; }).filter(Boolean))).sort()
+      asesoras: Array.from(new Set(lista.map(function(p) { return p.asesora; }).filter(Boolean))).sort(),
+      proveedores: pamLeerProveedores_(pamLibro_())
     };
   });
 }
@@ -194,14 +204,31 @@ function pamAplicarOperacion_(hojas, filaOperacion, operacion) {
   }
   if (plan.catalogo) {
     var catalogo = pamFilas_(hojas.catalogo, 19);
-    var propio = catalogo.find(function(f) { return String(f[16]) === objeto.ID_PAM; });
-    var conflicto = catalogo.find(function(f) { return String(pamLeerCelda_(f[0])).trim().toUpperCase() === objeto.CODIGO_MAESTRO && String(f[16]) !== objeto.ID_PAM; });
-    if (conflicto) throw new Error('Ese código ya existe en el catálogo PAM de prueba para otra solicitud. Usa un código diferente.');
-    if (propio && String(propio[17]) !== operacion[0]) throw new Error('La solicitud ya tiene otra publicación en prueba.');
-    if (!propio) {
-      hojas.catalogo.getRange(hojas.catalogo.getLastRow() + 1, 1, 1, 19).setValues([plan.catalogo.map(pamCelda_)]);
-      SpreadsheetApp.flush();
+    var propio = catalogo.findIndex(function(f) { return String(f[16]) === objeto.ID_PAM; });
+    // Compatibilidad con envíos pendientes de la primera prueba.
+    var filaDestino = propio >= 0 ? propio + 2 : (plan.filaCatalogo || pamSiguienteFilaCatalogo_(hojas));
+    var conflicto = catalogo.findIndex(function(f, i) {
+      return String(pamLeerCelda_(f[0])).trim().toUpperCase() === objeto.CODIGO_MAESTRO &&
+        String(f[16]) !== objeto.ID_PAM && i + 2 !== filaDestino;
+    });
+    if (conflicto >= 0) throw new Error('Ese código ya existe en el catálogo PAM de prueba para otra solicitud.');
+    var existente = catalogo[filaDestino - 2];
+    if (existente && existente[17] && String(existente[17]) !== operacion[0]) {
+      throw new Error('La fila de catálogo corresponde a otra publicación.');
     }
+    // M:N son columnas calculadas. No escribir ni valores ni vacíos sobre sus resultados.
+    hojas.catalogo.getRange(filaDestino, 1, 1, 12).setValues([plan.catalogo.slice(0, 12).map(pamCelda_)]);
+    hojas.catalogo.getRange(filaDestino, 15, 1, 5).setValues([plan.catalogo.slice(14).map(pamCelda_)]);
+    SpreadsheetApp.flush();
+    var formulas = pamFormulasDetal_(pamLibro_());
+    pamAplicarDetal_(hojas.catalogo, filaDestino, formulas);
+    SpreadsheetApp.flush();
+    var detalle = hojas.catalogo.getRange(filaDestino, 13, 1, 2).getValues()[0];
+    if (detalle.some(function(n) { return typeof n !== 'number' || !isFinite(n) || n <= 0; })) {
+      throw new Error('La fórmula de detal no devolvió dos precios positivos. Revisa las columnas M:N de PAM_Catalogo_Prueba y reintenta el envío.');
+    }
+    objeto.PRECIO_DETAL_BCV = detalle[0];
+    objeto.PRECIO_DETAL_DIV = detalle[1];
   }
   if (!actual || actual.objeto.ULTIMA_OPERACION !== operacion[0]) {
     var fila = actual ? actual.fila : hojas.solicitudes.getLastRow() + 1;
@@ -270,9 +297,8 @@ function pamGuardar_(tipo, datos) {
     } else if (tipo === 'PROCURA') {
       if (etapaAnterior !== 'POR_UBICAR' && etapaAnterior !== 'EN_DATA') throw new Error('La solicitud ya está publicada en prueba.');
       o.ITEM_SOLICITADO = pamRequerido_(datos.item, 'producto solicitado', 1000);
-      o.PROVEEDOR = pamRequerido_(datos.proveedor, 'proveedor', 200);
+      pamAsignarProveedor_(o, pamProveedor_(pamLibro_(), datos.proveedor_codigo));
       o.COSTO_BASE = pamNumero_(datos.costo, 'costo base', false);
-      o.PLAZO_ENTREGA = pamRequerido_(datos.plazo, 'plazo de entrega', 200);
       o.PROVEEDOR_COSTO = o.PROVEEDOR + ' | ' + o.COSTO_BASE;
       o.NOTA_PROCURA = pamTexto_(datos.nota, 2000);
       o.ETAPA_PAM = 'EN_DATA';
@@ -280,11 +306,12 @@ function pamGuardar_(tipo, datos) {
       if (etapaAnterior !== 'EN_DATA') throw new Error('Procura debe registrar la cotización antes de publicar.');
       o.CODIGO_MAESTRO = pamRequerido_(datos.codigo_maestro, 'código de catálogo', 200).toUpperCase();
       o.MARCA = pamRequerido_(datos.marca, 'marca', 100).toUpperCase();
-      o.CODIGO_PROVEEDOR = pamRequerido_(datos.prv, 'código de proveedor', 100).toUpperCase();
+      // La identidad del proveedor la valida el servidor con el directorio de Compras.
+      pamAsignarProveedor_(o, pamProveedor_(pamLibro_(), o.CODIGO_PROVEEDOR, o.PROVEEDOR));
       o.PRECIO_MAYOR_BCV = pamNumero_(datos.precio_bcv, 'precio mayor BCV', false);
       o.PRECIO_MAYOR_DIV = pamNumero_(datos.precio_div, 'precio mayor divisa', false);
-      o.PRECIO_DETAL_BCV = pamNumero_(datos.detal_bcv, 'precio detal BCV', false);
-      o.PRECIO_DETAL_DIV = pamNumero_(datos.detal_div, 'precio detal divisa', false);
+      o.PRECIO_DETAL_BCV = '';
+      o.PRECIO_DETAL_DIV = '';
       o.DESCRIPCION = pamRequerido_(datos.descripcion, 'descripción', 1000);
       o.MEDIDA_INTERNA = pamNumero_(datos.interna, 'medida interna', true, true);
       o.MEDIDA_EXTERNA = pamNumero_(datos.externa, 'medida externa', true, true);
@@ -306,13 +333,15 @@ function pamGuardar_(tipo, datos) {
     o.FECHA_ACTUALIZACION = new Date().toISOString();
     o.ULTIMA_OPERACION = opId;
     o.KOMMO_ESTADO = 'SIN_CONEXION';
+    var formulas = tipo === 'PUBLICAR_PRUEBA' ? pamFormulasDetal_(pamLibro_()) : null;
+    var filaCatalogo = formulas ? pamSiguienteFilaCatalogo_(hojas) : null;
     var catalogo = tipo === 'PUBLICAR_PRUEBA' ? [
       o.CODIGO_MAESTRO,o.MARCA,o.MEDIDA_INTERNA,o.MEDIDA_EXTERNA,o.ANCHO,o.OTRAS_REFERENCIAS,o.DESCRIPCION,
       0,0,0,o.PRECIO_MAYOR_BCV,o.PRECIO_MAYOR_DIV,o.PRECIO_DETAL_BCV,o.PRECIO_DETAL_DIV,o.CODIGO_PROVEEDOR,
       'NO',o.ID_PAM,opId,o.FECHA_ACTUALIZACION
     ] : null;
     var autor = Session.getActiveUser().getEmail() || 'Cuenta de despliegue';
-    var plan = { objeto: o, entrada: datos, catalogo: catalogo, etapaAnterior: etapaAnterior, versionAnterior: versionAnterior };
+    var plan = { objeto: o, entrada: datos, catalogo: catalogo, formulas: formulas, filaCatalogo: filaCatalogo, etapaAnterior: etapaAnterior, versionAnterior: versionAnterior };
     var json = JSON.stringify(plan);
     if (json.length > 45000) throw new Error('La solicitud es demasiado extensa.');
     var filaOperacion = hojas.operaciones.getLastRow() + 1;
@@ -354,4 +383,103 @@ function consultarOperacionPAM(id) {
     var op = pamFilas_(hojas.operaciones, 8).find(function(f) { return f[0] === id; });
     return { exito: true, registrada: !!op, estado: op ? op[4] : 'SIN_REGISTRO' };
   });
+}
+
+// Directorio compartido con Compras. PAM no tiene funciones para dar de alta proveedores.
+function pamLeerProveedores_(libro) {
+  var hoja = libro.getSheetByName('Leyenda_Proveedores') || libro.getSheetByName('Leyenda de proveedores');
+  if (!hoja || hoja.getLastRow() < 2) return [];
+  var ancho = Math.max(6, hoja.getLastColumn());
+  var datos = hoja.getRange(1, 1, hoja.getLastRow(), ancho).getValues();
+  var encabezados = datos[0].map(function(v) {
+    return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
+  });
+  var activo = encabezados.findIndex(function(v) { return v === 'ACTIVO' || v === 'AUTORIZADO' || v === 'ESTADO'; });
+  var mapa = Object.create(null), repetidos = new Set();
+  datos.slice(1).forEach(function(f) {
+    var codigo = pamTexto_(pamLeerCelda_(f[1]), 100).toUpperCase();
+    var nombre = pamTexto_(pamLeerCelda_(f[0]), 200);
+    if (!codigo || !nombre) return;
+    if (mapa[codigo]) repetidos.add(codigo);
+    var habilitado = activo < 0 || !/^(NO|FALSE|0|INACTIVO|DESAUTORIZADO|BAJA)$/.test(String(f[activo]).trim().toUpperCase());
+    mapa[codigo] = { codigo: codigo, nombre: nombre, origen: pamTexto_(f[2], 100), autorizado: habilitado,
+      plazos: { maracay: pamTexto_(f[3], 200), el_tigre: pamTexto_(f[4], 200), barquisimeto: pamTexto_(f[5], 200) } };
+  });
+  return Object.keys(mapa).filter(function(codigo) { return !repetidos.has(codigo) && mapa[codigo].autorizado; })
+    .map(function(codigo) { return mapa[codigo]; })
+    .sort(function(a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
+}
+
+function pamProveedor_(libro, codigo, nombreAnterior) {
+  var lista = pamLeerProveedores_(libro), clave = pamTexto_(codigo, 100).toUpperCase();
+  var candidatos = lista.filter(function(p) {
+    return clave ? p.codigo === clave : p.nombre.toUpperCase() === pamTexto_(nombreAnterior, 200).toUpperCase();
+  });
+  if (candidatos.length !== 1) {
+    throw new Error('Selecciona un proveedor autorizado por Compras. Si fue eliminado, desactivado o su código está duplicado, actualiza el directorio desde Compras.');
+  }
+  return candidatos[0];
+}
+
+function pamAsignarProveedor_(o, proveedor) {
+  o.PROVEEDOR = proveedor.nombre;
+  o.CODIGO_PROVEEDOR = proveedor.codigo;
+  o.PLAZO_MARACAY = proveedor.plazos.maracay;
+  o.PLAZO_EL_TIGRE = proveedor.plazos.el_tigre;
+  o.PLAZO_BARQUISIMETO = proveedor.plazos.barquisimeto;
+  o.PLAZO_ENTREGA = 'Maracay: ' + (proveedor.plazos.maracay || 'Por confirmar') +
+    ' · El Tigre: ' + (proveedor.plazos.el_tigre || 'Por confirmar') +
+    ' · Barquisimeto: ' + (proveedor.plazos.barquisimeto || 'Por confirmar');
+}
+
+// Reutilizar las fórmulas reales de M:N de Productos, nunca inferir un margen.
+function pamFormulasDetal_(libro) {
+  var origen = libro.getSheetByName('Productos');
+  if (!origen || origen.getLastRow() < 2 || origen.getLastColumn() < 14) {
+    throw new Error('No se encontraron las fórmulas de detal en las columnas M:N de Productos.');
+  }
+  var formulas = origen.getRange(2, 13, origen.getLastRow() - 1, 2).getFormulasR1C1();
+  return [0, 1].map(function(columna) {
+    var indice = formulas.findIndex(function(f) { return !!f[columna]; });
+    if (indice < 0) throw new Error('Falta la fórmula de detal en Productos, columna ' + (columna === 0 ? 'M' : 'N') + '.');
+    var formula = formulas[indice][columna];
+    if (/\b[A-Za-z_][A-Za-z0-9_]*\[[^\]]*[A-Za-z_][^\]]*\]/.test(formula)) {
+      throw new Error('La fórmula de detal usa referencias de tabla. Comparte las fórmulas de M:N para adaptar esa referencia al catálogo PAM de prueba.');
+    }
+    var matricial = /\b(?:ARRAYFORMULA|MAP|BYROW|SCAN)\s*\(/i.test(formula);
+    if (matricial && indice !== 0) throw new Error('La fórmula matricial de detal debe iniciar en la fila 2 para reutilizarse en prueba.');
+    // Referencias explícitas a la propia hoja deben calcular sobre las filas de prueba.
+    formula = formula.replace(/(?:'Productos'|\bProductos)!/gi, "'PAM_Catalogo_Prueba'!");
+    return { columna: columna + 13, formula: formula, matricial: matricial };
+  });
+}
+
+function pamSiguienteFilaCatalogo_(hojas) {
+  var max = 1;
+  pamFilas_(hojas.catalogo, 19).forEach(function(f, i) { if (f[0] || f[16]) max = i + 2; });
+  pamFilas_(hojas.operaciones, 8).forEach(function(op) {
+    if (op[4] !== 'PENDIENTE') return;
+    var plan = JSON.parse(op[5]);
+    if (plan.filaCatalogo) max = Math.max(max, plan.filaCatalogo);
+  });
+  return max + 1;
+}
+
+function pamAplicarDetal_(hoja, fila, formulas) {
+  formulas.forEach(function(regla) {
+    if (regla.matricial) {
+      var raiz = hoja.getRange(2, regla.columna);
+      if (raiz.getFormulasR1C1()[0][0] !== regla.formula) {
+        // Solo las columnas calculadas del catálogo de prueba. Las filas antiguas se recalculan.
+        hoja.getRange(2, regla.columna, Math.max(hoja.getLastRow(), fila) - 1, 1).clearContent();
+        raiz.setFormulaR1C1(regla.formula);
+      }
+    } else {
+      hoja.getRange(fila, regla.columna).setFormulaR1C1(regla.formula);
+    }
+  });
+}
+
+function obtenerProveedoresPAM() {
+  return pamLeerProveedores_(pamLibro_());
 }

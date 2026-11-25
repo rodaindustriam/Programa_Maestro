@@ -54,22 +54,24 @@ dialog{width:min(620px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
   <div class="dialog-head"><div><h2 id="titulo-procura">Cotización de Procura</h2><p>Registra la oferta encontrada para que Data prepare los precios.</p></div><button type="button" class="close" aria-label="Cerrar" onclick="cerrarModal('modal-procura')">✕</button></div>
   <div class="dialog-body"><input name="id" type="hidden"><input name="version" type="hidden"><div id="error-procura" class="form-error" role="alert" hidden></div>
     <div><label for="proc-item">Producto solicitado *</label><textarea id="proc-item" name="item" required maxlength="1000" rows="2"></textarea></div>
-    <div class="grid-2"><div><label for="proc-proveedor">Proveedor ubicado *</label><input id="proc-proveedor" name="proveedor" required maxlength="200"></div><div><label for="proc-costo">Costo base USD *</label><input id="proc-costo" name="costo" type="number" min="0.01" max="1000000000" step="0.01" required></div></div>
-    <div><label for="proc-plazo">Plazo de entrega cotizado *</label><input id="proc-plazo" name="plazo" required maxlength="200" placeholder="Ej. 5 días, entrega local"></div>
+    <div><label for="proc-proveedor">Proveedor autorizado por Compras *</label><select id="proc-proveedor" name="proveedor_codigo" required onchange="pamMostrarProveedor('proc')"><option value="">Selecciona un proveedor</option></select><button class="btn quiet" type="button" onclick="actualizarProveedoresPAM()">Actualizar proveedores</button><p class="help">Las altas y modificaciones se realizan desde Maestro de Compras.</p></div>
+    <div class="reference"><b>Código: <span id="proc-codigo-proveedor">—</span></b><div id="proc-plazos" class="help"></div></div>
+    <div><label for="proc-costo">Costo base USD *</label><input id="proc-costo" name="costo" type="number" min="0.01" max="1000000000" step="0.01" required></div>
     <div><label for="proc-nota">Observaciones y referencia de la oferta</label><textarea id="proc-nota" name="nota" maxlength="2000" rows="3" placeholder="Condiciones, referencia de cotización o enlace al soporte"></textarea></div>
   </div><div class="dialog-footer"><button type="button" class="btn" onclick="cerrarModal('modal-procura')">Cancelar</button><button class="btn primary" type="submit">Guardar y pasar a Data</button></div>
 </form></dialog>
 <dialog id="modal-data" aria-labelledby="titulo-data">
 <form id="form-data" onsubmit="event.preventDefault(); publicarEnPrueba()">
-  <div class="dialog-head"><div><h2 id="titulo-data">Preparar producto · Data</h2><p>Revisa la ficha y los cuatro precios antes de publicarla en prueba.</p></div><button type="button" class="close" aria-label="Cerrar" onclick="cerrarModal('modal-data')">✕</button></div>
+  <div class="dialog-head"><div><h2 id="titulo-data">Preparar producto · Data</h2><p>Revisa la ficha y los precios mayor BCV y divisa. La hoja calcula el detal.</p></div><button type="button" class="close" aria-label="Cerrar" onclick="cerrarModal('modal-data')">✕</button></div>
   <div class="dialog-body">
     <input name="id" type="hidden"><input name="version" type="hidden"><div id="error-data" class="form-error" role="alert" hidden></div>
     <div class="reference" id="data-ref-procura"></div>
     <div><label for="data-codigo">Código o nombre oficial del producto *</label><input id="data-codigo" name="codigo_maestro" maxlength="200" required></div>
-    <div class="grid-2"><div><label for="data-marca">Marca *</label><input id="data-marca" name="marca" required maxlength="100"></div><div><label for="data-prv">Código de proveedor *</label><input id="data-prv" name="prv" required maxlength="100" placeholder="Ej. PRV-302"></div></div>
+    <div class="grid-2"><div><label for="data-marca">Marca *</label><input id="data-marca" name="marca" required maxlength="100"></div><div><label for="data-proveedor">Proveedor seleccionado por Procura</label><select id="data-proveedor" disabled aria-describedby="data-proveedor-ayuda"></select></div></div>
+    <div class="reference"><b>Código: <span id="data-codigo-proveedor">—</span></b><div id="data-plazos" class="help"></div><p class="help" id="data-proveedor-ayuda">Para cambiar de proveedor, vuelve a la cotización de Procura.</p></div>
     <div><label for="data-descripcion">Descripción comercial *</label><textarea id="data-descripcion" name="descripcion" required maxlength="1000" rows="2"></textarea></div>
-    <div class="form-section"><h3>Precios en USD</h3><p class="help">Data define los importes. La prueba no aplica márgenes automáticos.</p></div>
-    <div class="grid-2"><div><label for="data-mayor-bcv">Mayor a tasa BCV *</label><input id="data-mayor-bcv" name="precio_bcv" type="number" required min="0.01" max="1000000000" step="0.01"></div><div><label for="data-mayor-div">Mayor en divisa *</label><input id="data-mayor-div" name="precio_div" type="number" required min="0.01" max="1000000000" step="0.01"></div><div><label for="data-detal-bcv">Detal a tasa BCV *</label><input id="data-detal-bcv" name="detal_bcv" type="number" required min="0.01" max="1000000000" step="0.01"></div><div><label for="data-detal-div">Detal en divisa *</label><input id="data-detal-div" name="detal_div" type="number" required min="0.01" max="1000000000" step="0.01"></div></div>
+    <div class="form-section"><h3>Precios en USD</h3><p class="help">Ingresa solo mayor BCV y mayor divisa. El detal se calcula con las fórmulas de Productos, dentro del catálogo PAM de prueba.</p></div>
+    <div class="grid-2"><div><label for="data-mayor-bcv">Mayor a tasa BCV *</label><input id="data-mayor-bcv" name="precio_bcv" type="number" required min="0.01" max="1000000000" step="0.01"></div><div><label for="data-mayor-div">Mayor en divisa *</label><input id="data-mayor-div" name="precio_div" type="number" required min="0.01" max="1000000000" step="0.01"></div></div>
     <details><summary>Medidas y otras referencias (opcional)</summary><div class="grid-2"><div><label for="data-interna">Medida interna mm</label><input id="data-interna" name="interna" type="number" min="0" max="1000000000" step="any"></div><div><label for="data-externa">Medida externa mm</label><input id="data-externa" name="externa" type="number" min="0" max="1000000000" step="any"></div><div><label for="data-ancho">Ancho mm</label><input id="data-ancho" name="ancho" type="number" min="0" max="1000000000" step="any"></div><div><label for="data-referencias">Otras referencias</label><input id="data-referencias" name="referencias" maxlength="500"></div></div></details>
     <p class="help">Se guardará en PAM_Catalogo_Prueba. Este paso no publica en Ventas ni mueve el lead en Kommo.</p>
   </div><div class="dialog-footer"><button type="button" class="btn" onclick="cerrarModal('modal-data')">Cancelar</button><button class="btn green" type="submit">Publicar en prueba</button></div>
@@ -94,7 +96,7 @@ dialog{width:min(620px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
 <dialog id="modal-ficha" aria-labelledby="titulo-ficha"><div class="dialog-head"><div><h2 id="titulo-ficha">Ficha de la solicitud</h2><p id="ficha-id"></p></div><button class="close" aria-label="Cerrar" onclick="cerrarModal('modal-ficha')">✕</button></div><div class="dialog-body" id="ficha-contenido"></div></dialog>
 <div id="toast" class="toast" role="status" hidden></div>
 <script>
-let solicitudesPAM = [], soloVIP = false, pamCargando = false, pamGuardando = false;
+let solicitudesPAM = [], proveedoresPAM = [], soloVIP = false, pamCargando = false, pamGuardando = false;
 let pamPendientesServidor = [], pamPendienteLocal = null, pamToastTimer, pamActividadRevision = 0;
 const PAM_ESTADO = {POR_UBICAR:'Por ubicar',EN_DATA:'En cálculo',DISPONIBLE:'Publicado en prueba'};
 const PAM_ACCIONES = {SOLICITUD:'Solicitud registrada / editada',PROCURA:'Cotización de Procura guardada',PUBLICAR_PRUEBA:'Producto publicado en prueba'};
@@ -140,7 +142,7 @@ async function cargarDatosPAM() {
   try {
     const res=await pamRpc('obtenerDatosTableroPAM');
     if (!res || !res.exito) throw new Error(res && res.error || 'No se pudo leer el tablero.');
-    solicitudesPAM=res.lista; pamPendientesServidor=res.pendientes || [];
+    solicitudesPAM=res.lista; proveedoresPAM=res.proveedores || []; pamPendientesServidor=res.pendientes || [];
     const selector=document.getElementById('filtro-asesora'), actual=selector.value;
     selector.replaceChildren(new Option('Todas las asesoras',''));
     (res.asesoras || []).forEach(a=>selector.add(new Option(a,a)));
@@ -199,13 +201,48 @@ function abrirSolicitud(id) {
   document.getElementById('titulo-solicitud').textContent=p?'Editar solicitud PAM':'Nueva solicitud PAM';
   document.getElementById('modal-solicitud').showModal();
 }
+function pamCodigoProveedor(p) {
+  if(p.prv)return p.prv;
+  const candidatos=proveedoresPAM.filter(v=>v.nombre.toUpperCase()===String(p.proveedor || '').toUpperCase());
+  return candidatos.length===1?candidatos[0].codigo:'';
+}
+function pamOpcionesProveedor(prefijo, codigo) {
+  const select=document.getElementById(prefijo+'-proveedor');
+  select.replaceChildren(new Option(proveedoresPAM.length?'Selecciona un proveedor':'Sin proveedores autorizados',''));
+  proveedoresPAM.forEach(p=>select.add(new Option(p.nombre+' · '+p.codigo,p.codigo)));
+  if(proveedoresPAM.some(p=>p.codigo===codigo))select.value=codigo;
+  pamMostrarProveedor(prefijo);
+}
+function pamMostrarProveedor(prefijo) {
+  const codigo=document.getElementById(prefijo+'-proveedor').value;
+  const proveedor=proveedoresPAM.find(p=>p.codigo===codigo);
+  document.getElementById(prefijo+'-codigo-proveedor').textContent=proveedor?proveedor.codigo:'—';
+  const cont=document.getElementById(prefijo+'-plazos');cont.replaceChildren();
+  if(!proveedor){cont.textContent='Selecciona un proveedor vigente del directorio de Compras.';return;}
+  [['Maracay','maracay'],['El Tigre','el_tigre'],['Barquisimeto','barquisimeto']].forEach(([sede,clave])=>{
+    const linea=document.createElement('div');linea.textContent=sede+': '+(proveedor.plazos[clave] || 'Por confirmar');cont.append(linea);
+  });
+}
+async function actualizarProveedoresPAM() {
+  if(pamGuardando)return;
+  const codigo=document.getElementById('proc-proveedor').value;
+  try {
+    proveedoresPAM=await pamRpc('obtenerProveedoresPAM');
+    pamOpcionesProveedor('proc',codigo);
+    mostrarToast('Directorio de Compras actualizado.');
+  } catch(error){mostrarToast(error.message);}
+}
 function abrirModalProcura(id) {
   const p=solicitudesPAM.find(x=>x.id===id);if(!p)return;
-  pamForm('procura',p);document.getElementById('modal-procura').showModal();
+  pamForm('procura',Object.assign({},p,{costo:p.costo || ''}));
+  pamOpcionesProveedor('proc',pamCodigoProveedor(p));
+  document.getElementById('modal-procura').showModal();
 }
 function abrirModalData(id) {
   const p=solicitudesPAM.find(x=>x.id===id);if(!p)return;
-  pamForm('data',Object.assign({},p,{codigo_maestro:p.codigo_maestro || p.item,descripcion:p.descripcion || p.item}));
+  pamForm('data',Object.assign({},p,{codigo_maestro:p.codigo_maestro || p.item,descripcion:p.descripcion || p.item,
+    precio_bcv:p.precio_bcv || '',precio_div:p.precio_div || ''}));
+  pamOpcionesProveedor('data',pamCodigoProveedor(p));
   document.getElementById('data-ref-procura').textContent=p.proveedor+' · Costo '+pamDinero(p.costo)+' · '+p.plazo;
   document.getElementById('modal-data').showModal();
 }
@@ -217,7 +254,7 @@ function abrirFicha(id) {
     ['Costo USD',pamDinero(p.costo)],['Plazo cotizado',p.plazo],['Observaciones de Procura',p.nota],
     ['Código de catálogo',p.codigo_maestro],['Marca',p.marca],['Código de proveedor',p.prv],['Descripción',p.descripcion],
     ['Mayor BCV',pamDinero(p.precio_bcv)],['Mayor divisa',pamDinero(p.precio_div)],
-    ['Detal BCV',pamDinero(p.detal_bcv)],['Detal divisa',pamDinero(p.detal_div)],
+    ['Detal BCV',p.detal_bcv>0?pamDinero(p.detal_bcv):'Se calcula en la hoja'],['Detal divisa',p.detal_div>0?pamDinero(p.detal_div):'Se calcula en la hoja'],
     ['Medidas interna / externa / ancho',[p.interna,p.externa,p.ancho].map(v=>v==='' || v==null?'—':v).join(' / ')+' mm'],
     ['Otras referencias',p.referencias],['Lead Kommo',p.lead_id],['Embudo',p.embudo_origen],['Integración','Sin conexión con Kommo']
   ];
