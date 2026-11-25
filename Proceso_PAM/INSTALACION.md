@@ -7,7 +7,8 @@ No envía solicitudes HTTP a Kommo ni modifica Productos.
 ## Instalación
 
 1. Crear un proyecto independiente de Google Apps Script llamado **RIM - Proceso PAM**.
-2. Reemplazar Código.gs, crear el archivo HTML **PAM** y copiar el manifiesto appsscript.json.
+2. Reemplazar Código.gs, crear el archivo de script **PerfilesDemo.gs**, crear el HTML **PAM**
+   y copiar el manifiesto appsscript.json.
 3. La hoja central configurada es 1qzuGTk_Jvof6OTY2_WPiBjdpITWfeCibv0HNihKGCTA.
    Puede sustituirse mediante la propiedad de script PAM_SPREADSHEET_ID.
    La cuenta que ejecuta el proyecto debe tener permisos de edición en ese libro.
@@ -100,3 +101,39 @@ Si faltan las fórmulas, hay referencias estructuradas de tabla que necesitan ad
 o el cálculo no devuelve precios positivos, la aplicación muestra un error específico.
 No sustituye la regla por un porcentaje supuesto. Las fórmulas reales y la lista del libro
 deben verificarse al probar la implementación en Apps Script.
+
+## D.R.D. y panel interno · Demo de perfiles
+
+Esta versión permite elegir Ventas, Procura, Data o Administrador desde el selector
+Perfil de prueba. No autentica usuarios ni aplica una separación de identidades reales.
+Mantener el acceso del despliegue en Solo yo durante la demostración.
+
+| Perfil simulado | D.R.D. | Procura y Data | Acciones propias |
+| --- | --- | --- | --- |
+| Ventas | Sí | No | Registrar, editar y confirmar alojamientos de su embudo demo |
+| Procura | Sí | Sí | Cargar proveedor autorizado, costo y cotización |
+| Data | Sí | Sí | Preparar producto, publicar en prueba y simular Ya disponible |
+| Administrador | Sí | Sí | Probar todas las acciones |
+
+El D.R.D. se organiza por embudos de vendedor y muestra exclusivamente datos comerciales.
+La respuesta para el perfil Ventas omite proveedor, código de proveedor, costos, precios
+de preparación, plazos de proveedor y notas internas. El servidor también comprueba el
+perfil solicitado antes de entregar proveedores o ejecutar acciones internas.
+
+Los embudos de la demo son una fuente simulada en PerfilesDemo.gs. La selección completa
+el nombre automáticamente y sustituye la entrada manual de asesora. Al integrar Kommo,
+se reemplazará esa fuente por los embudos y responsables reales. Los IDs de prueba no se
+envían como IDs de Kommo. Los registros anteriores se conservan.
+
+Ventas puede confirmar sus alojamientos. Una edición posterior reinicia la confirmación.
+Procura y Data pueden consultar ambos paneles. El estado del cliente se muestra en cada
+tarjeta y se identifica como simulado.
+
+El botón Ya disponible está reservado a Data y Administrador. Antes de simular el cambio,
+verifica todos los productos asociados al mismo lead, la publicación en PAM_Catalogo_Prueba
+y la ausencia de envíos pendientes. Si no existe un ID de lead, la prueba afecta únicamente
+la solicitud seleccionada. El cambio no realiza llamadas HTTP ni mueve leads reales.
+
+Antes de compartir con el equipo se debe sustituir el selector por identificación real,
+asignar permisos en el servidor y conectar la fuente de Kommo. El selector de demo no es
+un control de acceso para producción.
